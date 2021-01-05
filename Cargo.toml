@@ -1,0 +1,10 @@
+[package]
+name = "laria"
+version = "0.1.0"
+authors = ["Ruby Lazuli <nipkraps@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+laria_compiler = { path = "../laria_compiler" }
+pico-args = "0.3.4"
+rustc_version_runtime = "0.2.0"
