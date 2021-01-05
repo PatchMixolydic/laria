@@ -72,7 +72,7 @@ fn main() {
     };
 
     if args.sprite_def && args.script {
-        eprintln!("error: -s/--tspd and -c/--tscr are mutually exclusive");
+        eprintln!("error: -s/--tspd and -l/--lr are mutually exclusive");
         eprintln!("{}", usage());
         exit(1);
     }
