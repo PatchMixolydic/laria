@@ -124,7 +124,9 @@ fn main() {
             println!("Compiling {} as a Laria script...", source_file)
         }
 
-        script::compile(source_path);
+        let ast = script::lex_and_parse(source_path);
+        println!("{}", ast);
+        todo!("lower to file");
     } else {
         // Oh no, this is an unknown file!
         // This is a fatal error, so it's probably okay to
