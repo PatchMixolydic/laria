@@ -8,5 +8,4 @@ edition = "2018"
 anyhow = "1.0.33"
 annotate-snippets = { version = "0.9.0", features = ["color"] }
 laria_vm = { path = "../laria_vm" }
-mountain_river = { path = "../mountain_river" }
 thiserror = "1.0.21"

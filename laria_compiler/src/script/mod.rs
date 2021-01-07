@@ -1,6 +1,3 @@
-//! TODO: This is all duplicated from [`spriteset`][crate::spriteset]
-//! temporarily for prototyping. This should be fixed later.
-
 mod ast;
 pub mod lower_to_vm;
 mod parser;

@@ -1,7 +1,3 @@
-//! TODO: This is all duplicated from
-//! [`spriteset::parser`][crate::spriteset::parser] temporarily for prototyping.
-//! This should be fixed later.
-
 mod expected;
 mod keyword;
 

@@ -9,5 +9,4 @@
 mod errors;
 mod lexer;
 pub mod script;
-pub mod spriteset;
 mod token;
