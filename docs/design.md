@@ -59,11 +59,9 @@ Here's a quick tour of the basic language:
 
 ```rust
 struct Vec2 {
-    x: f32,
-    y: f32
-}
+    x: f32;
+    y: f32;
 
-impl Vec2 {
     fn new(x: f32, y: f32) -> Self {
         Self { x, y }
     }
@@ -80,11 +78,6 @@ impl Vec2 {
         let length = self.length();
         self.x /= length;
         self.y /= length;
-    }
-
-    // Implements the + operator
-    fn add(&self, other: Self) -> Self {
-        Self { x: self.x + other.x, y: self.y + other.y }
     }
 }
 
@@ -113,6 +106,9 @@ fn main() {
     assert_eq!(my_vec.x, 0.8);
     assert_eq!(my_vec.y, 0.6);
 
+    // This is a partial application.
+    // It is equivalent to a lambda:
+    // let square = |base| naive_pow(base, 2);
     let square = naive_pow(?, 2);
     assert_eq!(square(4), 16);
 
@@ -128,25 +124,19 @@ fn main() {
 }
 ```
 
-Traits aren't planned at this time.
-Really, I'm not sure how much I need structs/sum types in this language...
-
-The language gets more interesting when we consider making it a DSL
-for shooting games.
+Wonderful! But say we're making a game. How can we make it more amenable to
+easily creating content? For example, what if we're developing a bullet
+Hell game?
 
 ```rust
 // Let's start with a simple enemy.
-enemy Fairy {
-    // She has 20 health, drops nothing, and awards 1000 points when defeated
+enemy! Fairy {
+    // She has 20 health and awards 1000 points when defeated
     hp: 20,
     points: 1000,
-    // spritesheet! pulls in a spritesheet from a tspr file
-    // the filenames are relative to the sprite directory
-    // spritesheet!(tspr, spritesheet)
+    // spriteset! pulls in a spriteset, picking out a spritesheet
     spritesheet: spritesheet!("enemies.tspr", "enemies/common.png"),
     // Default animation scripts to use.
-    // A compile error occurs if the spritesheet doesn't actually have
-    // such scripts.
     // { forward, left, right }
     anim_scripts: { fairy_blue, fairy_blue_left, fairy_blue_right },
 
@@ -158,7 +148,6 @@ enemy Fairy {
         self.move_y_over_time(1.0, 64.0, InterpMode::EaseOut);
         wait(1.0);
 
-        // Loop 3 times (omit number to loop forever)
         loop 3 {
             let angle = 225.0;
             loop 5 {
@@ -174,16 +163,14 @@ enemy Fairy {
         wait(1.0);
         self.move_over_time(1.0, 128, -1, InterpMode::EaseIn);
         wait(1.0);
-        // Entities are dropped once they return from their top-level function
-        // To prevent this, you can use forget(entity)
     }
 }
 
-enemy RedFairy {
+// Let's give her a friend!
+enemy! RedFairy {
     hp: 40,
     points: 1100,
-    // Some predefined spritesheets will probably be provided
-    // for your convenience
+    // Some predefined spritesheets, for your convenience
     spritesheet: spritesheets::CommonEnemies,
     // ...as well as anim scripts.
     anim_scripts: anim_scripts::RedFairy,
@@ -194,18 +181,8 @@ enemy RedFairy {
     behaviour: Fairy::behaviour
 }
 
-// Let's make some stronger enemies.
-enemy YellowFairy {
-    hp: 100,
-    points: 2000,
-    spritesheet: spritesheets::CommonEnemies,
-    anim_scripts: anim_scripts::YellowFairy,
-
-    behaviour: Fairy::behaviour
-}
-
 // How about a midboss?
-boss Midboss {
+boss! Midboss {
     points: 5000,
     spritesheet: spritesheet!("stage1.tspr", "enemies/stage1.png"),
     // Note that this line ends with a semicolon.
@@ -215,19 +192,12 @@ boss Midboss {
 
     // `init` is meant for things like moving the boss onscreen, waiting for dialogue, etc.
     // After the `init` block finishes, the boss moves on to their first attack pattern.
-    // The boss is intangible by default during the `init` block.
-    // You can undo this with `self.set_intangible(false);`.
-    // Oh, right... `init` and the boss's attack patterns recieve a parameter, `self`,
-    // which refers to the boss. (Useful: bosses are of type `Enemy`)
+    // `init` and the boss's attack patterns recieve a parameter, `self`,
+    // which refers to the boss.
     init {
         self.move_over_time(1.0, 96.0, 64.0, InterpMode::EaseOut);
         // Don't wait for the movement to finish
     }
-
-    // Bosses have multiple health bars, which indicates their attack pattern.
-    // This is something I've, erm, borrowed until I die from Touhou Project.
-    // Boss patterns are expected to be unique, so they're defined inline.
-    // They can still call other functions, though.
 
     // Without further ado, let's define this boss's attack sequence.
     // Her healthbar:
@@ -237,10 +207,7 @@ boss Midboss {
         // have x hp, and `timeout y` indicates that this pattern will timeout
         // after y seconds (nb. x: {integer}, y: {float}).
         // Attack patterns loop automatically.
-        //
-        // Note that not having an attack pattern with `hp {max hp}`
-        // is a compile error. For this reason, a shorthand is provided for this:
-        // `start`.
+        // `start` is synonymous with `hp [max hp]`
         start, timeout 30.0 {
             // fire_bullet_ring(sprite, colour, num_bullets, speed, aim_for_player)
             self.fire_bullet_ring(sprites::Bullet, colours::Blue, 10, 5.0, false);
@@ -257,15 +224,7 @@ boss Midboss {
 
         // Once the boss hits 1500 HP or the above attack pattern is timed out,
         // this pattern starts.
-        // Note that timing out here drops this health bar
-        // and moves on to the next one. If the last attack pattern is
-        // timed out, the boss dies.
-        // (Well, generally nobody dies in these games, but...)
         hp 1500, timeout 30.0 {
-            // Touhou has spell cards...
-            // Erm...
-            // That's also an idea I borrowed until I die.
-            // Perhaps Marisa isn't a very good role model...
             begin_spell("Pragmatist \"Let Someone Else Handle It\"");
 
             loop {
@@ -279,10 +238,9 @@ boss Midboss {
         }
     }
 
-    // This miniboss only has one healthbar. It is now defeated.
-    // However, if the boss timed out, we want it to run away instead of
+    // This miniboss only has one healthbar. She is now defeated.
+    // However, if the boss timed out, we want her to run away instead of
     // exploding.
-    // We can define custom behaviour using the `end` block.
     end {
         if self.last_attack_timed_out {
             // Timed out, run away
@@ -290,56 +248,16 @@ boss Midboss {
             self.move_over_time(1.0, -1, 128.0, InterpMode::EaseIn);
             wait(1.0);
         } else {
-            // She died :(
+            // She lost :(
             self.boss_explosion();
         }
     }
 }
-
-fn main() {
-    // Let the player get their bearings. Wait for 2 seconds.
-    wait(2.0);
-    // Spawn a basic enemy at (64, -1) that drops a power item
-    spawn_enemy(Fairy, 64.0, -1.0, Item::Power);
-    // Wait a bit for the enemy to attack and leave
-    wait(3.75);
-    // Another one
-    spawn_enemy(Fairy, 64.0, -1.0, Item::Point);
-    wait(0.5);
-    // Give her a friend
-    spawn_enemy(RedFairy, 128.0, -1.0, Item::None);
-    wait(3.5);
-
-    // Here comes the miniboss!
-    spawn_enemy(MiniBoss, 0.0, -1.0, Item::None);
-    wait_for_boss_end();
-
-    // And more...
-    // Eventually, you will get to the boss
-    // start_dialogue(dialogue_file, id)
-    start_dialogue("stage1.tdlg", 0);
-    // Let's say the dialogue yields control
-    // back to the script.
-    // Note: `Boss` hasn't been defined here because tired
-    spawn_enemy(Boss, 0.0, -1.0, Item::None);
-    // We can now yield control back to the dialogue.
-    yield_to_dialogue();
-    // Eventually, the dialogue will end and the battle
-    // will begin.
-    wait_for_boss_end();
-    // Success
-    start_dialogue("stage1.tdlg", 1);
-    // Block on running
-    // the dialogue to completion,
-    // automatically yielding if needed.
-    await_dialogue();
-    // Challenge next stage!
-    next_stage();
-}
 ```
 
-But what if we're not making a shooting game...? Covering everyone's desires
-would be rather difficult. This could be alleviated with macros.
+But what if we're not making such a game? Covering everyone's desires with one
+specialized langauge would be rather difficult. This could be alleviated with
+macros.
 
 ### macros_rule!
 
