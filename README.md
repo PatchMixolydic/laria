@@ -2,10 +2,10 @@
 This is the repository for Laria, a (someday) statically typed (eventually)
 embeddable scripting language.
 
-Currently, Laria is a very early work in progress, so it is almost definitely
-not ready for production use. The codebase may be quite messy, as the project
-is currently in the prototyping phase. Many oddities are likely placeholders or
-prototypes.
+Currently, Laria is a very early work in progress \[currently, it's not in a
+usable state], so it is almost definitely not ready for production use. The
+codebase may be quite messy, as the project is currently in the prototyping
+phase. Many oddities are likely placeholders or prototypes.
 
 The \[projected] syntax of Laria currently borrows (:P) heavily from Rust.
 It is, however, subject to change (and is expected to change!).
