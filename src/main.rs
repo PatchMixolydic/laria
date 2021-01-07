@@ -33,7 +33,7 @@ fn usage() -> String {
             "Options:\n",
             "   -h, --help    - view help\n",
             "   -s, --tspd    - compile a Triplicata sprite definition (.tspd)\n",
-            "   -l, --lr      - compile a Laria script (.lr)\n",
+            "   -l, --lri      - compile a Laria script (.lri)\n",
             "   -v, --verbose - enable verbose output\n",
             "   -V, --version - show version\n",
         ),
@@ -47,7 +47,7 @@ fn process_args() -> Result<Args, pico_args::Error> {
     Ok(Args {
         help: args.contains(["-h", "--help"]),
         sprite_def: args.contains(["-s", "--tspd"]),
-        script: args.contains(["-l", "--lr"]),
+        script: args.contains(["-l", "--lri"]),
         verbose: args.contains(["-v", "--verbose"]),
         version: args.contains(["-V", "--version"]),
         source_file: args.free_from_str()?
@@ -72,7 +72,7 @@ fn main() {
     };
 
     if args.sprite_def && args.script {
-        eprintln!("error: -s/--tspd and -l/--lr are mutually exclusive");
+        eprintln!("error: -s/--tspd and -l/--lri are mutually exclusive");
         eprintln!("{}", usage());
         exit(1);
     }
@@ -119,7 +119,7 @@ fn main() {
         }
 
         spriteset::compile(source_path);
-    } else if extension == "lr" || args.script {
+    } else if extension == "lri" || args.script {
         if args.verbose {
             println!("Compiling {} as a Laria script...", source_file)
         }
@@ -151,14 +151,14 @@ fn main() {
         } else if extension == "lrc" {
             println!(
                 "you may have meant {}",
-                source_path.with_extension("lr").to_string_lossy()
+                source_path.with_extension("lri").to_string_lossy()
             );
         }
 
         println!(
             "help: you can use the following options to explicitly state the file type:\n\
             \t-s, --tspd - compile a Triplicata sprite definition\n\
-            \t-l, --lr - compile a Laria script"
+            \t-l, --lri - compile a Laria script"
         );
 
         exit(1);
