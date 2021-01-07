@@ -9,13 +9,13 @@ use thiserror::Error;
 
 use self::{
     expected::{ExpectLiteral, Expected},
-    keyword::Keyword
+    keyword::Keyword,
 };
 use crate::{
     errors::{DiagnosticsContext, Span},
     script::ast::*,
     token::Symbol,
-    token::{DelimKind, Token, TokenKind}
+    token::{DelimKind, Token, TokenKind},
 };
 
 #[derive(Debug, Error)]
@@ -25,7 +25,7 @@ pub enum ParseError {
     #[error("Unexpected EOF")]
     UnexpectedEOF,
     #[error("A value would cause an overflow")]
-    ValueTooLarge
+    ValueTooLarge,
 }
 
 /// Used to deduplicate the bodies of Parser::expect_and_unwrap_{type}.
@@ -52,7 +52,7 @@ macro_rules! expect_and_unwrap_body {
                     .emit();
 
                 return Err(ParseError::ValueTooLarge);
-            }
+            },
         }
     }};
 }
@@ -64,7 +64,7 @@ struct Parser<'src> {
     /// This is to allow for diagnostics such as
     /// `expected keyword 'spritesheet', got 'rickrolled'`.
     expected_items: HashSet<Expected>,
-    error_ctx: DiagnosticsContext<'src>
+    error_ctx: DiagnosticsContext<'src>,
 }
 
 impl<'src> Parser<'src> {
@@ -72,7 +72,7 @@ impl<'src> Parser<'src> {
         Self {
             tokens: tokens.into_iter().peekable(),
             expected_items: HashSet::new(),
-            error_ctx: DiagnosticsContext::new(code, None)
+            error_ctx: DiagnosticsContext::new(code, None),
         }
     }
 
@@ -97,7 +97,7 @@ impl<'src> Parser<'src> {
             None => self
                 .error_ctx
                 .build_error("unexpected end of file")
-                .with_eof_span()
+                .with_eof_span(),
         };
 
         if !self.expected_items.is_empty() {
@@ -117,7 +117,7 @@ impl<'src> Parser<'src> {
 
         match self.bump() {
             Some(token) => ParseError::UnexpectedToken(token.kind),
-            None => ParseError::UnexpectedEOF
+            None => ParseError::UnexpectedEOF,
         }
     }
 
@@ -128,7 +128,7 @@ impl<'src> Parser<'src> {
         match self.tokens.peek() {
             Some(Token { kind, .. }) => expected.matches(kind),
 
-            _ => false
+            _ => false,
         }
     }
 
@@ -185,7 +185,7 @@ impl<'src> Parser<'src> {
                     Some(_) => return Err(self.unexpected()),
 
                     // Reached EOF
-                    None => break
+                    None => break,
                 }
             }
         }
@@ -230,7 +230,7 @@ impl<'src> Parser<'src> {
         while !self.check_next(Expected::CloseDelim(DelimKind::Brace)) {
             match self.parse_statement_or_expr()? {
                 StatementOrExpr::Statement(stmt) => res.contents.push(stmt),
-                StatementOrExpr::Expression(expr) => res.return_expr = Some(Box::new(expr))
+                StatementOrExpr::Expression(expr) => res.return_expr = Some(Box::new(expr)),
             }
         }
 
@@ -245,7 +245,7 @@ impl<'src> Parser<'src> {
     fn parse_statement_or_expr(&mut self) -> Result<StatementOrExpr, ParseError> {
         if self.check_next(Expected::Keyword(Keyword::Let)) {
             Ok(StatementOrExpr::Statement(
-                self.parse_variable_declaration()?
+                self.parse_variable_declaration()?,
             ))
         } else if self.check_block_like_expr_next() {
             let stmt = self.parse_block_like_expr()?;
@@ -253,15 +253,15 @@ impl<'src> Parser<'src> {
 
             Ok(StatementOrExpr::Statement(Statement::new(
                 StatementKind::Expression(stmt),
-                span
+                span,
             )))
         } else {
             let expr = self.parse_expression(
                 &[
                     Expected::Symbol(Symbol::Semicolon),
-                    Expected::CloseDelim(DelimKind::Brace)
+                    Expected::CloseDelim(DelimKind::Brace),
                 ],
-                0
+                0,
             )?;
 
             let mut span = expr.span;
@@ -272,7 +272,7 @@ impl<'src> Parser<'src> {
 
                 Ok(StatementOrExpr::Statement(Statement::new(
                     StatementKind::Expression(expr),
-                    span
+                    span,
                 )))
             } else if self.check_next(Expected::CloseDelim(DelimKind::Brace)) {
                 Ok(StatementOrExpr::Expression(expr))
@@ -309,14 +309,14 @@ impl<'src> Parser<'src> {
                     .emit();
 
                 Err(ParseError::UnexpectedToken(TokenKind::Symbol(
-                    Symbol::Semicolon
+                    Symbol::Semicolon,
                 )))
             },
 
             _ => Ok(Statement::new(
                 StatementKind::Declaration((name, ty), expr),
-                span
-            ))
+                span,
+            )),
         }
     }
 
@@ -327,11 +327,11 @@ impl<'src> Parser<'src> {
     fn parse_expression(
         &mut self,
         delimiters: &[Expected],
-        min_bind_power: u8
+        min_bind_power: u8,
     ) -> Result<Expression, ParseError> {
         let (next_token_kind, mut span) = match self.tokens.peek() {
             Some(token) => (token.kind.clone(), token.span),
-            None => return Err(self.unexpected())
+            None => return Err(self.unexpected()),
         };
 
         let mut res = if delimiters.iter().any(|d| d.matches(&next_token_kind)) {
@@ -347,7 +347,7 @@ impl<'src> Parser<'src> {
                         ..
                     } => todo!("unit?"),
 
-                    res => res
+                    res => res,
                 }
             };
 
@@ -372,10 +372,10 @@ impl<'src> Parser<'src> {
             let (literal_kind, literal_span) = match self.bump() {
                 Some(Token {
                     kind: TokenKind::Literal(kind),
-                    span
+                    span,
                 }) => (kind, span),
 
-                _ => unreachable!()
+                _ => unreachable!(),
             };
 
             span.grow_to_contain(&literal_span);
@@ -385,10 +385,10 @@ impl<'src> Parser<'src> {
             let (ident, ident_span) = match self.bump() {
                 Some(Token {
                     kind: TokenKind::IdentOrKeyword(ident),
-                    span
+                    span,
                 }) => (ident, span),
 
-                _ => unreachable!()
+                _ => unreachable!(),
             };
 
             span.grow_to_contain(&ident_span);
@@ -405,7 +405,7 @@ impl<'src> Parser<'src> {
                     (token.kind.clone(), token.span)
                 },
 
-                None => return Err(self.unexpected())
+                None => return Err(self.unexpected()),
             };
 
             if delimiters.iter().any(|d| d.matches(&next_token_kind)) {
@@ -426,7 +426,7 @@ impl<'src> Parser<'src> {
 
             let operator = match self.token_as_binary_op(&next_token_kind) {
                 Some(res) => res,
-                None => return Err(self.unexpected())
+                None => return Err(self.unexpected()),
             };
 
             let (left_bind_power, right_bind_power) = self.bind_power_for_binop(&operator);
@@ -447,7 +447,7 @@ impl<'src> Parser<'src> {
 
             res = Expression::new(
                 ExpressionKind::BinaryOperation(Box::new(res), operator, Box::new(rhs)),
-                span
+                span,
             );
         }
 
@@ -472,7 +472,7 @@ impl<'src> Parser<'src> {
 
             Ok(Expression {
                 kind: ExpressionKind::Block(block),
-                span
+                span,
             })
         } else if self.check_next(Expected::Keyword(Keyword::If)) {
             self.parse_if_expr()
@@ -500,11 +500,11 @@ impl<'src> Parser<'src> {
                     .emit();
 
                 return Err(ParseError::UnexpectedToken(TokenKind::OpenDelim(
-                    DelimKind::Brace
+                    DelimKind::Brace,
                 )));
             },
 
-            res => res
+            res => res,
         };
 
         let then = self.parse_block()?;
@@ -521,7 +521,7 @@ impl<'src> Parser<'src> {
                 Some(Block {
                     contents: Vec::new(),
                     return_expr: Some(Box::new(else_if_expr)),
-                    span: else_if_span
+                    span: else_if_span,
                 })
             } else {
                 let else_block = self.parse_block()?;
@@ -537,10 +537,10 @@ impl<'src> Parser<'src> {
             kind: ExpressionKind::If {
                 cond: Box::new(cond),
                 then,
-                otherwise
+                otherwise,
             },
 
-            span: if_span
+            span: if_span,
         })
     }
 
@@ -558,11 +558,11 @@ impl<'src> Parser<'src> {
                     .emit();
 
                 return Err(ParseError::UnexpectedToken(TokenKind::OpenDelim(
-                    DelimKind::Brace
+                    DelimKind::Brace,
                 )));
             },
 
-            res => res
+            res => res,
         };
 
         let body = self.parse_block()?;
@@ -570,7 +570,7 @@ impl<'src> Parser<'src> {
 
         Ok(Expression {
             kind: ExpressionKind::While(Box::new(cond), body),
-            span
+            span,
         })
     }
 
@@ -583,7 +583,7 @@ impl<'src> Parser<'src> {
                 ..
             } => None,
 
-            res => Some(Box::new(res))
+            res => Some(Box::new(res)),
         };
 
         let body = self.parse_block()?;
@@ -591,7 +591,7 @@ impl<'src> Parser<'src> {
 
         Ok(Expression {
             kind: ExpressionKind::Loop(loop_count, body),
-            span
+            span,
         })
     }
 
@@ -599,7 +599,7 @@ impl<'src> Parser<'src> {
         match token_kind {
             TokenKind::Symbol(Symbol::Exclamation) => Some(UnaryOperator::Not),
             TokenKind::Symbol(Symbol::Minus) => Some(UnaryOperator::Negative),
-            _ => None
+            _ => None,
         }
     }
 
@@ -612,7 +612,7 @@ impl<'src> Parser<'src> {
                 return Some(BinaryOperator::As)
             },
 
-            _ => return None
+            _ => return None,
         };
 
         match symbol {
@@ -635,7 +635,7 @@ impl<'src> Parser<'src> {
             Symbol::Slash => Some(BinaryOperator::Divide),
             Symbol::SingleEquals => Some(BinaryOperator::Assign),
             Symbol::Percent => Some(BinaryOperator::Modulo),
-            _ => None
+            _ => None,
         }
     }
 
@@ -669,8 +669,7 @@ impl<'src> Parser<'src> {
 
             BinaryOperator::Multiply | BinaryOperator::Divide | BinaryOperator::Modulo => (19, 20),
 
-            BinaryOperator::As => (21, 22)
-            // UnaryOperator::{Negative, Not}
+            BinaryOperator::As => (21, 22), // UnaryOperator::{Negative, Not}
         }
     }
 
@@ -678,7 +677,7 @@ impl<'src> Parser<'src> {
     /// unary operators. The returned value is the right binding power.
     fn bind_power_for_unary_op(&self, operator: &UnaryOperator) -> u8 {
         match operator {
-            UnaryOperator::Negative | UnaryOperator::Not => 23
+            UnaryOperator::Negative | UnaryOperator::Not => 23,
         }
     }
 }

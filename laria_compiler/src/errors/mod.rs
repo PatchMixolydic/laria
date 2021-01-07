@@ -11,12 +11,12 @@ enum Level {
     Warning,
     Help,
     Info,
-    Note
+    Note,
 }
 
 pub struct DiagnosticsContext<'src> {
     source: &'src str,
-    origin: Option<String>
+    origin: Option<String>,
 }
 
 #[allow(dead_code)]

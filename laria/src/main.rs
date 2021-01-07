@@ -5,7 +5,7 @@ use std::{
     env::current_exe,
     path::{Path, PathBuf},
     process::exit,
-    sync::atomic::{AtomicBool, Ordering}
+    sync::atomic::{AtomicBool, Ordering},
 };
 
 const PACKAGE_NAME: &str = env!("CARGO_PKG_NAME");
@@ -18,7 +18,7 @@ struct Args {
     help: bool,
     verbose: bool,
     version: bool,
-    source_file: Option<String>
+    source_file: Option<String>,
 }
 
 fn usage() -> String {
@@ -44,7 +44,7 @@ fn process_args() -> Result<Args, pico_args::Error> {
         help: args.contains(["-h", "--help"]),
         verbose: args.contains(["-v", "--verbose"]),
         version: args.contains(["-V", "--version"]),
-        source_file: args.free_from_str()?
+        source_file: args.free_from_str()?,
     })
 }
 
@@ -62,7 +62,7 @@ fn main() {
             println!("error: {}", err);
             eprintln!("{}", usage());
             exit(1);
-        }
+        },
     };
 
     VERBOSE.store(args.verbose, Ordering::SeqCst);

@@ -12,7 +12,7 @@ pub enum DelimKind {
     /// `(` or `)`
     Paren,
     /// `[` or `]`
-    Bracket
+    Bracket,
 }
 
 impl DelimKind {
@@ -21,7 +21,7 @@ impl DelimKind {
         match self {
             DelimKind::Brace => "{",
             DelimKind::Paren => "(",
-            DelimKind::Bracket => "["
+            DelimKind::Bracket => "[",
         }
     }
 
@@ -30,7 +30,7 @@ impl DelimKind {
         match self {
             DelimKind::Brace => "}",
             DelimKind::Paren => ")",
-            DelimKind::Bracket => "]"
+            DelimKind::Bracket => "]",
         }
     }
 }
@@ -42,7 +42,7 @@ pub enum LiteralKind {
     /// ex. `"Hello world!"`
     String(String),
     /// ex. `1.5`
-    Float(f64)
+    Float(f64),
 }
 
 impl fmt::Display for LiteralKind {
@@ -50,7 +50,7 @@ impl fmt::Display for LiteralKind {
         match self {
             Self::Integer(i) => write!(f, "{}", i),
             Self::String(ref s) => write!(f, "\"{}\"", s),
-            Self::Float(inner) => write!(f, "{:?}", inner)
+            Self::Float(inner) => write!(f, "{:?}", inner),
         }
     }
 }
@@ -106,7 +106,7 @@ pub enum Symbol {
     /// `^`
     Caret,
     /// `%`
-    Percent
+    Percent,
 }
 
 impl fmt::Display for Symbol {
@@ -136,7 +136,7 @@ impl fmt::Display for Symbol {
             Self::GreaterGreater => write!(f, ">>"),
             Self::LessLess => write!(f, "<<"),
             Self::Caret => write!(f, "^"),
-            Self::Percent => write!(f, "%")
+            Self::Percent => write!(f, "%"),
         }
     }
 }
@@ -154,35 +154,35 @@ pub enum TokenKind {
     /// ex. `+`, `-`, `==`
     Symbol(Symbol),
     /// Hack for skipping whitespace
-    Whitespace
+    Whitespace,
 }
 
 impl TokenKind {
     pub fn unwrap_ident(self) -> String {
         match self {
             Self::IdentOrKeyword(id) => id,
-            _ => panic!("called `unwrap_ident` on {:?}", self)
+            _ => panic!("called `unwrap_ident` on {:?}", self),
         }
     }
 
     pub fn unwrap_integer(self) -> i64 {
         match self {
             Self::Literal(LiteralKind::Integer(i)) => i,
-            _ => panic!("called `unwrap_integer` on {:?}", self)
+            _ => panic!("called `unwrap_integer` on {:?}", self),
         }
     }
 
     pub fn unwrap_string(self) -> String {
         match self {
             Self::Literal(LiteralKind::String(s)) => s,
-            _ => panic!("called `unwrap_string` on {:?}", self)
+            _ => panic!("called `unwrap_string` on {:?}", self),
         }
     }
 
     pub fn unwrap_float(self) -> f64 {
         match self {
             Self::Literal(LiteralKind::Float(f)) => f,
-            _ => panic!("called `unwrap_float` on {:?}", self)
+            _ => panic!("called `unwrap_float` on {:?}", self),
         }
     }
 }
@@ -199,7 +199,7 @@ impl fmt::Display for TokenKind {
             Self::OpenDelim(kind) => write!(f, "{}", kind.open_as_str()),
             Self::CloseDelim(kind) => write!(f, "{}", kind.close_as_str()),
             Self::Symbol(symbol) => write!(f, "{}", symbol),
-            Self::Whitespace => write!(f, "{{whitespace hack}}")
+            Self::Whitespace => write!(f, "{{whitespace hack}}"),
         }
     }
 }
@@ -207,7 +207,7 @@ impl fmt::Display for TokenKind {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Token {
     pub kind: TokenKind,
-    pub span: Span
+    pub span: Span,
 }
 
 impl Token {

@@ -6,7 +6,7 @@ use std::{
     fs::File,
     io::{BufReader, Read},
     path::Path,
-    process::exit
+    process::exit,
 };
 
 use crate::lexer;
@@ -23,7 +23,7 @@ pub fn lex_and_parse(filename: impl AsRef<Path>) -> ast::Script {
                 err
             );
             exit(2);
-        }
+        },
     };
 
     let source = {
@@ -34,7 +34,7 @@ pub fn lex_and_parse(filename: impl AsRef<Path>) -> ast::Script {
             Err(err) => {
                 eprintln!("error: problem reading file: {}", err);
                 exit(2);
-            }
+            },
         }
     };
 
@@ -43,11 +43,11 @@ pub fn lex_and_parse(filename: impl AsRef<Path>) -> ast::Script {
         Err(_) => {
             // Errors already emitted as diagnostics
             exit(2);
-        }
+        },
     };
 
     match parser::parse(tokens, &source) {
         Ok(res) => res,
-        Err(_) => exit(2)
+        Err(_) => exit(2),
     }
 }

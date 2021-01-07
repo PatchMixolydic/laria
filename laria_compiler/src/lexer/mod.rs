@@ -4,13 +4,13 @@ mod tests;
 use std::{
     iter::{Enumerate, Peekable},
     num::{ParseFloatError, ParseIntError},
-    str::Chars
+    str::Chars,
 };
 use thiserror::Error;
 
 use crate::{
     errors::{DiagnosticsContext, Span},
-    token::{DelimKind, LiteralKind, Symbol, Token, TokenKind}
+    token::{DelimKind, LiteralKind, Symbol, Token, TokenKind},
 };
 
 type CharStream<'a> = Peekable<Enumerate<Chars<'a>>>;
@@ -27,20 +27,20 @@ pub enum LexError {
     #[error("Failed to parse string starting at {0}")]
     CouldntParseString(usize),
     #[error("Unexpected end of file at {0}")]
-    UnexpectedEOF(usize)
+    UnexpectedEOF(usize),
 }
 
 /// Keeps the lexer state during lexing.
 struct Lexer<'src> {
     chars: CharStream<'src>,
-    error_ctx: DiagnosticsContext<'src>
+    error_ctx: DiagnosticsContext<'src>,
 }
 
 impl<'src> Lexer<'src> {
     fn new(source: &'src str) -> Self {
         Self {
             chars: source.chars().enumerate().peekable(),
-            error_ctx: DiagnosticsContext::new(source, None)
+            error_ctx: DiagnosticsContext::new(source, None),
         }
     }
 
@@ -71,7 +71,7 @@ impl<'src> Lexer<'src> {
         start: usize,
         next_char: char,
         both_kind: TokenKind,
-        one_kind: TokenKind
+        one_kind: TokenKind,
     ) -> Result<Option<Token>, LexError> {
         self.chars.next();
 
@@ -100,7 +100,7 @@ impl<'src> Lexer<'src> {
         let (idx, c) = match self.chars.peek() {
             // Tuple is deconstructed here to copy the fields
             Some(x) => (x.0, x.1),
-            None => return Ok(None)
+            None => return Ok(None),
         };
 
         // Span for c, since it's the most common
@@ -125,35 +125,35 @@ impl<'src> Lexer<'src> {
                 idx,
                 '=',
                 TokenKind::Symbol(Symbol::DoubleEquals),
-                TokenKind::Symbol(Symbol::SingleEquals)
+                TokenKind::Symbol(Symbol::SingleEquals),
             ),
 
             '!' => self.maybe_two_char(
                 idx,
                 '=',
                 TokenKind::Symbol(Symbol::ExclEqual),
-                TokenKind::Symbol(Symbol::Exclamation)
+                TokenKind::Symbol(Symbol::Exclamation),
             ),
 
             '>' => self.maybe_two_char(
                 idx,
                 '=',
                 TokenKind::Symbol(Symbol::GreaterThanEqual),
-                TokenKind::Symbol(Symbol::GreaterThan)
+                TokenKind::Symbol(Symbol::GreaterThan),
             ),
 
             '<' => self.maybe_two_char(
                 idx,
                 '=',
                 TokenKind::Symbol(Symbol::LessThanEqual),
-                TokenKind::Symbol(Symbol::LessThan)
+                TokenKind::Symbol(Symbol::LessThan),
             ),
 
             '-' => self.maybe_two_char(
                 idx,
                 '>',
                 TokenKind::Symbol(Symbol::Arrow),
-                TokenKind::Symbol(Symbol::Minus)
+                TokenKind::Symbol(Symbol::Minus),
             ),
 
             '+' => self.one_char_token(idx, TokenKind::Symbol(Symbol::Plus)),
@@ -175,8 +175,8 @@ impl<'src> Lexer<'src> {
 
                     _ => Ok(Some(Token {
                         kind: TokenKind::Symbol(Symbol::Slash),
-                        span: Span::new(idx, 1)
-                    }))
+                        span: Span::new(idx, 1),
+                    })),
                 }
             },
 
@@ -186,21 +186,21 @@ impl<'src> Lexer<'src> {
                 idx,
                 '&',
                 TokenKind::Symbol(Symbol::AndAnd),
-                TokenKind::Symbol(Symbol::And)
+                TokenKind::Symbol(Symbol::And),
             ),
 
             '|' => self.maybe_two_char(
                 idx,
                 '|',
                 TokenKind::Symbol(Symbol::PipePipe),
-                TokenKind::Symbol(Symbol::Pipe)
+                TokenKind::Symbol(Symbol::Pipe),
             ),
 
             ':' => self.maybe_two_char(
                 idx,
                 ':',
                 TokenKind::Symbol(Symbol::DoubleColon),
-                TokenKind::Symbol(Symbol::Colon)
+                TokenKind::Symbol(Symbol::Colon),
             ),
 
             ' ' | '\t' | '\n' | '\r' => self.one_char_token(idx, TokenKind::Whitespace),
@@ -210,7 +210,7 @@ impl<'src> Lexer<'src> {
                     .build_error_span(span_c, format!("unexpected character `{}`", c))
                     .emit();
                 Err(LexError::UnexpectedChar(c, idx))
-            }
+            },
         }
     }
 
@@ -257,12 +257,12 @@ impl<'src> Lexer<'src> {
                 Ok(res) => {
                     let token = Token::new(
                         TokenKind::Literal(LiteralKind::Float(res)),
-                        Span::new(start, num_str.len())
+                        Span::new(start, num_str.len()),
                     );
                     Ok(token)
                 },
 
-                Err(err) => Err(LexError::CouldntParseFloat(num_str, err))
+                Err(err) => Err(LexError::CouldntParseFloat(num_str, err)),
             }
         } else {
             // Oh! We're done
@@ -270,12 +270,12 @@ impl<'src> Lexer<'src> {
                 Ok(res) => {
                     let token = Token::new(
                         TokenKind::Literal(LiteralKind::Integer(res)),
-                        Span::new(start, num_str.len())
+                        Span::new(start, num_str.len()),
                     );
                     Ok(token)
                 },
 
-                Err(err) => Err(LexError::CouldntParseInt(num_str, err))
+                Err(err) => Err(LexError::CouldntParseInt(num_str, err)),
             }
         };
 
@@ -286,7 +286,7 @@ impl<'src> Lexer<'src> {
                 self.error_ctx
                     .build_error_span(
                         Span::new(start, num_str.len()),
-                        format!("could not parse {} as a float", num_str)
+                        format!("could not parse {} as a float", num_str),
                     )
                     .note(format!("str::parse says: {}", source))
                     .emit();
@@ -299,7 +299,7 @@ impl<'src> Lexer<'src> {
                 self.error_ctx
                     .build_error_span(
                         Span::new(start, num_str.len()),
-                        format!("could not parse {} as an integer", num_str)
+                        format!("could not parse {} as an integer", num_str),
                     )
                     .note(format!("str::parse says: {}", source))
                     .emit();
@@ -307,7 +307,7 @@ impl<'src> Lexer<'src> {
                 Err(LexError::CouldntParseInt(num_str, source))
             },
 
-            Err(_) => unreachable!()
+            Err(_) => unreachable!(),
         }
     }
 
@@ -346,24 +346,24 @@ impl<'src> Lexer<'src> {
                                 self.error_ctx
                                     .build_error_span(
                                         Span::new(idx - 1, 2),
-                                        format!("invalid escape `\\{}`", c)
+                                        format!("invalid escape `\\{}`", c),
                                     )
                                     .emit();
 
                                 return Err(LexError::CouldntParseString(span_start));
-                            }
+                            },
                         };
 
                         escape = false;
                     },
 
-                    _ => res_vec.push(c)
+                    _ => res_vec.push(c),
                 }
             } else {
                 self.error_ctx
                     .build_error_span(
                         Span::new(span_start, last_idx - span_start + 1),
-                        "unexpected end of file while lexing string literal"
+                        "unexpected end of file while lexing string literal",
                     )
                     .emit();
 
@@ -376,7 +376,7 @@ impl<'src> Lexer<'src> {
 
         Ok(Token::new(
             TokenKind::Literal(LiteralKind::String(res)),
-            span
+            span,
         ))
     }
 }

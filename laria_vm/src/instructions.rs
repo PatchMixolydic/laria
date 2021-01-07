@@ -75,5 +75,5 @@ pub enum Instruction {
     SetLocal,
     /// Given an index into the constants array,
     /// retrieves a constant and pushes it on top of the stack.
-    GetConstant
+    GetConstant,
 }

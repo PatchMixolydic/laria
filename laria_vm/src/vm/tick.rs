@@ -27,7 +27,7 @@ impl VM {
                     _ => {
                         return Err(VMError::NotEnoughValues {
                             expected: 1,
-                            found: self.stack.len()
+                            found: self.stack.len(),
                         })
                     },
                 }
@@ -47,7 +47,7 @@ impl VM {
                     _ => {
                         return Err(VMError::NotEnoughValues {
                             expected: 2,
-                            found: self.stack.len()
+                            found: self.stack.len(),
                         })
                     },
                 }
@@ -60,9 +60,9 @@ impl VM {
             None => {
                 return Err(VMError::ProgramCounterOutOfBounds {
                     pc: self.program_counter,
-                    script_len: self.script.instructions.len()
+                    script_len: self.script.instructions.len(),
                 });
-            }
+            },
         };
 
         let instruction = Instruction::from_u8(opcode).ok_or(VMError::UnknownOpcode(opcode))?;
@@ -89,7 +89,7 @@ impl VM {
                         Err(FromBytesError::NotEnoughBytes { .. }) => {
                             return Err(VMError::ProgramCounterOutOfBounds {
                                 pc: self.script.instructions.len() + 1,
-                                script_len: self.script.instructions.len()
+                                script_len: self.script.instructions.len(),
                             })
                         },
                     };
@@ -686,7 +686,7 @@ impl VM {
 
                     None => return Err(VMError::NoSuchConstant(index))
                 }
-            })
+            }),
         };
 
         Ok(())

@@ -1,6 +1,6 @@
 use annotate_snippets::{
     display_list::{DisplayList, FormatOptions},
-    snippet::{Annotation, AnnotationType, Slice, Snippet, SourceAnnotation}
+    snippet::{Annotation, AnnotationType, Slice, Snippet, SourceAnnotation},
 };
 
 use super::{span::Span, DiagnosticsContext, Level};
@@ -12,7 +12,7 @@ impl From<Level> for AnnotationType {
             Level::Warning => AnnotationType::Warning,
             Level::Help => AnnotationType::Help,
             Level::Info => AnnotationType::Info,
-            Level::Note => AnnotationType::Note
+            Level::Note => AnnotationType::Note,
         }
     }
 }
@@ -20,7 +20,7 @@ impl From<Level> for AnnotationType {
 struct Label {
     contents: Option<String>,
     level: Level,
-    span: Span
+    span: Span,
 }
 
 impl<'label> From<&'label Label> for Annotation<'label> {
@@ -28,7 +28,7 @@ impl<'label> From<&'label Label> for Annotation<'label> {
         Annotation {
             label: Some(label.contents.as_ref().map_or("", |x| x.as_str())),
             id: None,
-            annotation_type: label.level.into()
+            annotation_type: label.level.into(),
         }
     }
 }
@@ -38,7 +38,7 @@ impl<'label> From<&'label Label> for SourceAnnotation<'label> {
         SourceAnnotation {
             label: label.contents.as_ref().map_or("", |x| x.as_str()),
             range: (label.span.start, label.span.start + label.span.length),
-            annotation_type: label.level.into()
+            annotation_type: label.level.into(),
         }
     }
 }
@@ -49,7 +49,7 @@ pub struct DiagnosticBuilder<'ctx, 'src> {
     level: Level,
     labels: Vec<Label>,
     footers: Vec<Label>,
-    context: &'ctx DiagnosticsContext<'src>
+    context: &'ctx DiagnosticsContext<'src>,
 }
 
 #[allow(dead_code)]
@@ -57,14 +57,14 @@ impl<'ctx, 'src> DiagnosticBuilder<'ctx, 'src> {
     pub(super) fn new(
         title: String,
         level: Level,
-        context: &'ctx DiagnosticsContext<'src>
+        context: &'ctx DiagnosticsContext<'src>,
     ) -> Self {
         Self {
             title,
             level,
             labels: Vec::new(),
             footers: Vec::new(),
-            context
+            context,
         }
     }
 
@@ -73,7 +73,7 @@ impl<'ctx, 'src> DiagnosticBuilder<'ctx, 'src> {
         self.labels.push(Label {
             contents: Some(message.to_string()),
             level: self.level,
-            span
+            span,
         });
         self
     }
@@ -83,7 +83,7 @@ impl<'ctx, 'src> DiagnosticBuilder<'ctx, 'src> {
         self.labels.push(Label {
             contents: Some(message.to_string()),
             level: Level::Note,
-            span
+            span,
         });
         self
     }
@@ -93,7 +93,7 @@ impl<'ctx, 'src> DiagnosticBuilder<'ctx, 'src> {
         self.labels.push(Label {
             contents: None,
             level: self.level,
-            span
+            span,
         });
         self
     }
@@ -103,7 +103,7 @@ impl<'ctx, 'src> DiagnosticBuilder<'ctx, 'src> {
         self.labels.push(Label {
             contents: None,
             level: self.level,
-            span: Span::new(self.context.source.len() - 1, 1)
+            span: Span::new(self.context.source.len() - 1, 1),
         });
         self
     }
@@ -113,7 +113,7 @@ impl<'ctx, 'src> DiagnosticBuilder<'ctx, 'src> {
         self.footers.push(Label {
             contents: Some(message.to_string()),
             level: Level::Help,
-            span: Span::empty()
+            span: Span::empty(),
         });
         self
     }
@@ -123,7 +123,7 @@ impl<'ctx, 'src> DiagnosticBuilder<'ctx, 'src> {
         self.footers.push(Label {
             contents: Some(message.to_string()),
             level: Level::Note,
-            span: Span::empty()
+            span: Span::empty(),
         });
         self
     }
@@ -133,7 +133,7 @@ impl<'ctx, 'src> DiagnosticBuilder<'ctx, 'src> {
             title: Some(Annotation {
                 label: Some(&self.title),
                 id: None,
-                annotation_type: self.level.into()
+                annotation_type: self.level.into(),
             }),
 
             footer: self.footers.iter().map(Annotation::from).collect(),
@@ -143,13 +143,13 @@ impl<'ctx, 'src> DiagnosticBuilder<'ctx, 'src> {
                 line_start: 1,
                 origin: self.context.origin.as_deref(),
                 fold: true,
-                annotations: self.labels.iter().map(SourceAnnotation::from).collect()
+                annotations: self.labels.iter().map(SourceAnnotation::from).collect(),
             }],
 
             opt: FormatOptions {
                 color: true,
                 ..Default::default()
-            }
+            },
         };
 
         let dl = DisplayList::from(snippet);

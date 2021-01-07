@@ -15,13 +15,13 @@ pub enum FromBytesError {
     #[error("Couldn't parse string value: {0}")]
     Utf8Error(#[source] Utf8Error),
     #[error("Unknown type tag {0}")]
-    UnknownTypeTag(u8)
+    UnknownTypeTag(u8),
 }
 
 #[derive(Clone, Copy, Debug, Error)]
 pub enum ToBytesError {
     #[error("{0} value too large (expected at most {1} bytes, got {2} bytes)")]
-    ValueTooLarge(ValueKind, usize, usize)
+    ValueTooLarge(ValueKind, usize, usize),
 }
 
 #[repr(u8)]
@@ -33,7 +33,7 @@ pub enum ValueKind {
     UnsignedInt,
     Float,
     String,
-    Unit
+    Unit,
 }
 
 impl fmt::Display for ValueKind {
@@ -45,7 +45,7 @@ impl fmt::Display for ValueKind {
             ValueKind::UnsignedInt => write!(f, "unsigned integer"),
             ValueKind::Float => write!(f, "float"),
             ValueKind::String => write!(f, "string"),
-            ValueKind::Unit => write!(f, "unit")
+            ValueKind::Unit => write!(f, "unit"),
         }
     }
 }
@@ -58,7 +58,7 @@ pub enum Value {
     UnsignedInt(u64),
     Float(f64),
     String(String),
-    Unit
+    Unit,
 }
 
 impl Value {
@@ -70,13 +70,13 @@ impl Value {
         if bytes.is_empty() {
             return Err(FromBytesError::NotEnoughBytes {
                 expected: 1,
-                actual: 0
+                actual: 0,
             });
         }
 
         let kind = match ValueKind::from_u8(bytes[0]) {
             Some(res) => res,
-            None => return Err(FromBytesError::UnknownTypeTag(bytes[0]))
+            None => return Err(FromBytesError::UnknownTypeTag(bytes[0])),
         };
 
         match kind {
@@ -88,14 +88,14 @@ impl Value {
                 if bytes.len() >= 9 {
                     let res = Self::Integer(i64::from_le_bytes([
                         bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
-                        bytes[8]
+                        bytes[8],
                     ]));
 
                     Ok((res, 9))
                 } else {
                     Err(FromBytesError::NotEnoughBytes {
                         expected: 9,
-                        actual: bytes.len()
+                        actual: bytes.len(),
                     })
                 }
             },
@@ -104,14 +104,14 @@ impl Value {
                 if bytes.len() >= 9 {
                     let res = Self::UnsignedInt(u64::from_le_bytes([
                         bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
-                        bytes[8]
+                        bytes[8],
                     ]));
 
                     Ok((res, 9))
                 } else {
                     Err(FromBytesError::NotEnoughBytes {
                         expected: 9,
-                        actual: bytes.len()
+                        actual: bytes.len(),
                     })
                 }
             },
@@ -120,14 +120,14 @@ impl Value {
                 if bytes.len() >= 9 {
                     let res = Self::Float(f64::from_le_bytes([
                         bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
-                        bytes[8]
+                        bytes[8],
                     ]));
 
                     Ok((res, 9))
                 } else {
                     Err(FromBytesError::NotEnoughBytes {
                         expected: 9,
-                        actual: bytes.len()
+                        actual: bytes.len(),
                     })
                 }
             },
@@ -136,7 +136,7 @@ impl Value {
                 if bytes.len() == 1 {
                     return Err(FromBytesError::NotEnoughBytes {
                         expected: 1,
-                        actual: bytes.len()
+                        actual: bytes.len(),
                     });
                 }
 
@@ -147,17 +147,17 @@ impl Value {
                 if bytes.len() < expected_bytes_length {
                     Err(FromBytesError::NotEnoughBytes {
                         expected: expected_bytes_length,
-                        actual: bytes.len()
+                        actual: bytes.len(),
                     })
                 } else {
                     match std::str::from_utf8(&bytes[2..str_length + 2]) {
                         Ok(res) => Ok((Value::String(res.to_string()), expected_bytes_length)),
-                        Err(err) => Err(FromBytesError::Utf8Error(err))
+                        Err(err) => Err(FromBytesError::Utf8Error(err)),
                     }
                 }
             },
 
-            ValueKind::Unit => Ok((Value::Unit, 1))
+            ValueKind::Unit => Ok((Value::Unit, 1)),
         }
     }
 
@@ -188,7 +188,7 @@ impl Value {
                     return Err(ToBytesError::ValueTooLarge(
                         self.kind(),
                         u8::MAX as usize,
-                        s.len()
+                        s.len(),
                     ));
                 }
 
@@ -198,7 +198,7 @@ impl Value {
                 Ok(res)
             },
 
-            Value::Unit => Ok(res)
+            Value::Unit => Ok(res),
         }
     }
 
@@ -210,7 +210,7 @@ impl Value {
             Value::UnsignedInt(_) => ValueKind::UnsignedInt,
             Value::Float(_) => ValueKind::Float,
             Value::String(_) => ValueKind::String,
-            Value::Unit => ValueKind::Unit
+            Value::Unit => ValueKind::Unit,
         }
     }
 }

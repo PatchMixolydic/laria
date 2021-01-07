@@ -26,7 +26,7 @@ pub enum VMError {
     #[error("Tried to access nonexistent constant with index {0}")]
     NoSuchConstant(usize),
     #[error("Tried to access an out-of-bounds stack value (tried to access {index}, but the stack length is {stack_len})")]
-    StackIndexTooLarge { index: usize, stack_len: usize }
+    StackIndexTooLarge { index: usize, stack_len: usize },
 }
 
 pub struct VM {
@@ -35,7 +35,7 @@ pub struct VM {
     program_counter: usize,
     stack: Vec<Value>,
     stack_frames: Vec<StackFrame>,
-    globals: HashMap<String, Value>
+    globals: HashMap<String, Value>,
 }
 
 impl VM {
@@ -49,14 +49,14 @@ impl VM {
             program_counter: 0,
             stack: Vec::new(),
             stack_frames,
-            globals: HashMap::new()
+            globals: HashMap::new(),
         }
     }
 
     fn call(&mut self, maybe_fn_name: Value) -> Result<(), VMError> {
         let target = match maybe_fn_name {
             Value::String(fn_name) => self.get_global(&fn_name)?,
-            _ => return Err(VMError::WrongType)
+            _ => return Err(VMError::WrongType),
         };
 
         match target {
@@ -64,7 +64,7 @@ impl VM {
                 if *start > self.script.instructions.len() {
                     return Err(VMError::OutOfBoundsJump {
                         pc: self.program_counter,
-                        script_len: self.script.instructions.len()
+                        script_len: self.script.instructions.len(),
                     });
                 }
 
@@ -82,7 +82,7 @@ impl VM {
 
             Value::NativeFn(f) => f(&mut self.stack),
 
-            _ => return Err(VMError::WrongType)
+            _ => return Err(VMError::WrongType),
         }
 
         Ok(())

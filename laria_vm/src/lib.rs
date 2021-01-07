@@ -28,7 +28,7 @@ bitflags! {
 pub struct Script {
     pub(crate) _version: u8,
     pub(crate) instructions: Vec<u8>,
-    pub(crate) constants: Vec<Value>
+    pub(crate) constants: Vec<Value>,
 }
 
 impl Script {
@@ -36,7 +36,7 @@ impl Script {
         Self {
             _version: version,
             instructions,
-            constants
+            constants,
         }
     }
 }

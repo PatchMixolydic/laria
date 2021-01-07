@@ -2,7 +2,7 @@ use super::{keyword::Keyword, Expected, Parser};
 use crate::{
     lexer::lex,
     script::ast::{BinaryOperator, ExpressionKind},
-    token::Symbol
+    token::Symbol,
 };
 
 /// Lexes a source stream
@@ -128,7 +128,7 @@ fn as_cast() {
             ))
         },
 
-        _ => unreachable!()
+        _ => unreachable!(),
     }
 }
 
@@ -146,7 +146,7 @@ fn fn_call() {
             assert_eq!(args.len(), 0);
         },
 
-        _ => panic!("got incorrect expression {}", res)
+        _ => panic!("got incorrect expression {}", res),
     }
 }
 

@@ -9,7 +9,7 @@ pub(super) enum ExpectLiteral {
     Any,
     String,
     Integer,
-    Float
+    Float,
 }
 
 impl fmt::Display for ExpectLiteral {
@@ -18,7 +18,7 @@ impl fmt::Display for ExpectLiteral {
             ExpectLiteral::Any => write!(f, "any"),
             ExpectLiteral::String => write!(f, "string"),
             ExpectLiteral::Integer => write!(f, "integer"),
-            ExpectLiteral::Float => write!(f, "float")
+            ExpectLiteral::Float => write!(f, "float"),
         }
     }
 }
@@ -32,7 +32,7 @@ pub(super) enum Expected {
     Block,
     OpenDelim(DelimKind),
     CloseDelim(DelimKind),
-    Symbol(Symbol)
+    Symbol(Symbol),
 }
 
 impl Expected {
@@ -41,7 +41,7 @@ impl Expected {
             TokenKind::IdentOrKeyword(id) => match self {
                 Self::Ident => Keyword::from_str(id) == None,
                 Self::Keyword(keyword) => Keyword::from_str(id) == Some(*keyword),
-                _ => false
+                _ => false,
             },
 
             TokenKind::Literal(LiteralKind::Integer(_)) => {
@@ -68,7 +68,7 @@ impl Expected {
             TokenKind::OpenDelim(kind) => self == &Self::OpenDelim(*kind),
             TokenKind::CloseDelim(kind) => self == &Self::CloseDelim(*kind),
             TokenKind::Symbol(symbol) => self == &Self::Symbol(*symbol),
-            TokenKind::Whitespace => panic!("Tried to convert TokenKind::Whitespace to Expected")
+            TokenKind::Whitespace => panic!("Tried to convert TokenKind::Whitespace to Expected"),
         }
     }
 }
@@ -83,7 +83,7 @@ impl fmt::Display for Expected {
             Expected::Block => write!(f, "block"),
             Expected::OpenDelim(kind) => write!(f, "`{}`", kind.open_as_str()),
             Expected::CloseDelim(kind) => write!(f, "`{}`", kind.close_as_str()),
-            Expected::Symbol(symbol) => write!(f, "`{}`", symbol)
+            Expected::Symbol(symbol) => write!(f, "`{}`", symbol),
         }
     }
 }

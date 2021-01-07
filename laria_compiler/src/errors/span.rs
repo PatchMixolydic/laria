@@ -1,6 +1,6 @@
 use std::{
     cmp::{max, min},
-    ops::Range
+    ops::Range,
 };
 
 /// Represents a highlighted span in a source
@@ -8,7 +8,7 @@ use std::{
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Span {
     pub start: usize,
-    pub length: usize
+    pub length: usize,
 }
 
 impl Span {
@@ -20,7 +20,7 @@ impl Span {
     pub const fn empty() -> Self {
         Self {
             start: 0,
-            length: 0
+            length: 0,
         }
     }
 

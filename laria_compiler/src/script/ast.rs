@@ -5,14 +5,14 @@ use crate::{errors::Span, token::LiteralKind};
 #[derive(Clone, Debug)]
 pub struct Script {
     pub functions: Vec<Function>,
-    pub span: Span
+    pub span: Span,
 }
 
 impl Script {
     pub const fn new() -> Self {
         Self {
             functions: Vec::new(),
-            span: Span::empty()
+            span: Span::empty(),
         }
     }
 }
@@ -32,7 +32,7 @@ pub struct Function {
     pub name: String,
     pub arguments: Vec<(String, String)>,
     pub body: Block,
-    pub span: Span
+    pub span: Span,
 }
 
 impl Function {
@@ -41,7 +41,7 @@ impl Function {
             name: String::new(),
             arguments: Vec::new(),
             body: Block::new(),
-            span: Span::empty()
+            span: Span::empty(),
         }
     }
 }
@@ -62,7 +62,7 @@ impl fmt::Display for Function {
 pub struct Block {
     pub contents: Vec<Statement>,
     pub return_expr: Option<Box<Expression>>,
-    pub span: Span
+    pub span: Span,
 }
 
 impl Block {
@@ -70,7 +70,7 @@ impl Block {
         Self {
             contents: Vec::new(),
             return_expr: None,
-            span: Span::empty()
+            span: Span::empty(),
         }
     }
 }
@@ -101,13 +101,13 @@ pub enum StatementKind {
     // TODO: pattern matching?
     /// A variable declaration,
     /// `let lhs.0: lhs.1 = rhs;`.
-    Declaration((String, Option<String>), Expression)
+    Declaration((String, Option<String>), Expression),
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Statement {
     pub kind: StatementKind,
-    pub span: Span
+    pub span: Span,
 }
 
 impl Statement {
@@ -125,7 +125,7 @@ impl fmt::Display for Statement {
                 write!(f, "let {}: {} = {};", name, ty, expr)
             },
 
-            StatementKind::Declaration((name, None), expr) => write!(f, "let {} = {};", name, expr)
+            StatementKind::Declaration((name, None), expr) => write!(f, "let {} = {};", name, expr),
         }
     }
 }
@@ -133,14 +133,14 @@ impl fmt::Display for Statement {
 #[derive(Clone, Debug, PartialEq)]
 pub enum UnaryOperator {
     Negative,
-    Not
+    Not,
 }
 
 impl fmt::Display for UnaryOperator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             UnaryOperator::Negative => write!(f, "-"),
-            UnaryOperator::Not => write!(f, "!")
+            UnaryOperator::Not => write!(f, "!"),
         }
     }
 }
@@ -166,7 +166,7 @@ pub enum BinaryOperator {
     ShiftLeft,
     ShiftRight,
     Assign,
-    As
+    As,
 }
 
 impl fmt::Display for BinaryOperator {
@@ -191,7 +191,7 @@ impl fmt::Display for BinaryOperator {
             BinaryOperator::ShiftLeft => write!(f, "<<"),
             BinaryOperator::ShiftRight => write!(f, ">>"),
             BinaryOperator::Assign => write!(f, "="),
-            BinaryOperator::As => write!(f, "as")
+            BinaryOperator::As => write!(f, "as"),
         }
     }
 }
@@ -199,14 +199,14 @@ impl fmt::Display for BinaryOperator {
 #[derive(Clone, Debug, PartialEq)]
 pub enum PartialArg {
     Expression(Expression),
-    Hole
+    Hole,
 }
 
 impl fmt::Display for PartialArg {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             PartialArg::Expression(expr) => write!(f, "{}", expr),
-            PartialArg::Hole => write!(f, "?")
+            PartialArg::Hole => write!(f, "?"),
         }
     }
 }
@@ -219,7 +219,7 @@ pub enum ExpressionKind {
     If {
         cond: Box<Expression>,
         then: Block,
-        otherwise: Option<Block>
+        otherwise: Option<Block>,
     },
 
     /// A loop expression, `loop x {}`.
@@ -253,13 +253,13 @@ pub enum ExpressionKind {
     Identifier(String),
 
     /// An empty expression, as in the statement `;`.
-    Empty
+    Empty,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Expression {
     pub kind: ExpressionKind,
-    pub span: Span
+    pub span: Span,
 }
 
 impl Expression {
@@ -274,13 +274,13 @@ impl fmt::Display for Expression {
             ExpressionKind::If {
                 cond,
                 then,
-                otherwise: Some(otherwise)
+                otherwise: Some(otherwise),
             } => write!(f, "if {} {} else {}", cond, then, otherwise),
 
             ExpressionKind::If {
                 cond,
                 then,
-                otherwise: None
+                otherwise: None,
             } => write!(f, "if {} {}", cond, then),
 
             ExpressionKind::Loop(Some(times), body) => write!(f, "loop {} {}", times, body),
@@ -316,7 +316,7 @@ impl fmt::Display for Expression {
 
             ExpressionKind::Literal(literal) => write!(f, "{}", literal),
             ExpressionKind::Identifier(ident) => write!(f, "{}", ident),
-            ExpressionKind::Empty => Ok(())
+            ExpressionKind::Empty => Ok(()),
         }
     }
 }
@@ -325,5 +325,5 @@ impl fmt::Display for Expression {
 #[derive(Clone, Debug)]
 pub(super) enum StatementOrExpr {
     Statement(Statement),
-    Expression(Expression)
+    Expression(Expression),
 }

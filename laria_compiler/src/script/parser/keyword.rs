@@ -17,7 +17,7 @@ pub enum Keyword {
     In,
     Struct,
     Enum,
-    Yield
+    Yield,
 }
 
 impl Keyword {
@@ -41,7 +41,7 @@ impl Keyword {
             "struct" => Some(Self::Struct),
             "enum" => Some(Self::Enum),
             "yield" => Some(Self::Yield),
-            _ => None
+            _ => None,
         }
     }
 
@@ -64,7 +64,7 @@ impl Keyword {
             Keyword::In => "in",
             Keyword::Struct => "struct",
             Keyword::Enum => "enum",
-            Keyword::Yield => "yield"
+            Keyword::Yield => "yield",
         }
     }
 }

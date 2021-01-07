@@ -98,6 +98,9 @@ jobs:
         path: target
         key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
 
+    - name: Format
+      run: cargo +nightly fmt -- --check
+
     - name: Compile
       run: cargo +nightly test --no-run --locked
 

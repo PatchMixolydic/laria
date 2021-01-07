@@ -6,13 +6,13 @@ pub enum FromBytesError {
     #[error("Byte slice not big enough for a subroutine (expected {expected}, got {actual})")]
     NotEnoughBytes { expected: usize, actual: usize },
     #[error("Error while parsing a string: {0}")]
-    Utf8Error(#[source] Utf8Error)
+    Utf8Error(#[source] Utf8Error),
 }
 
 pub struct Subroutine {
     name: String,
     num_arguments: u8,
-    start_address: usize
+    start_address: usize,
 }
 
 impl<'name> Subroutine {
@@ -20,7 +20,7 @@ impl<'name> Subroutine {
         Self {
             name,
             num_arguments,
-            start_address
+            start_address,
         }
     }
 
@@ -28,7 +28,7 @@ impl<'name> Subroutine {
         if bytes.is_empty() {
             return Err(FromBytesError::NotEnoughBytes {
                 expected: 1,
-                actual: bytes.len()
+                actual: bytes.len(),
             });
         }
 
@@ -38,13 +38,13 @@ impl<'name> Subroutine {
         if bytes.len() < expected_bytes_len {
             return Err(FromBytesError::NotEnoughBytes {
                 expected: expected_bytes_len,
-                actual: bytes.len()
+                actual: bytes.len(),
             });
         }
 
         let name = match std::str::from_utf8(&bytes[1..=name_length]) {
             Ok(res) => res.to_string(),
-            Err(err) => return Err(FromBytesError::Utf8Error(err))
+            Err(err) => return Err(FromBytesError::Utf8Error(err)),
         };
 
         let num_arguments = bytes[name_length + 1];
@@ -53,7 +53,7 @@ impl<'name> Subroutine {
             bytes[name_length + 2],
             bytes[name_length + 3],
             bytes[name_length + 4],
-            bytes[name_length + 5]
+            bytes[name_length + 5],
         ]);
 
         Ok(Self::new(name, num_arguments, start_address as usize))

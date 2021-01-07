@@ -5,14 +5,14 @@ pub(crate) struct StackFrame {
     /// The return address is stored in here
     /// to prevent bugs arising from modifying
     /// the return address on the stack.
-    pub(crate) return_address: usize
+    pub(crate) return_address: usize,
 }
 
 impl StackFrame {
     pub(crate) const fn new(stack_base: usize, return_address: usize) -> Self {
         Self {
             stack_base,
-            return_address
+            return_address,
         }
     }
 }
