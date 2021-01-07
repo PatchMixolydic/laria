@@ -1,0 +1,13 @@
+cargo-features = ["strip"]
+
+[workspace]
+members = [
+    "laria",
+    "laria_compiler",
+    "laria_vm"
+]
+
+[profile.release]
+codegen-units = 1
+lto = true
+strip = 'symbols'
