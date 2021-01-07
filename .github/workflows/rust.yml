@@ -1,22 +1,144 @@
-name: Rust
+# Adapted from Rust Analyzer's ci.yaml.
 
+# Permission is hereby granted, free of charge, to any
+# person obtaining a copy of this software and associated
+# documentation files (the "Software"), to deal in the
+# Software without restriction, including without
+# limitation the rights to use, copy, modify, merge,
+# publish, distribute, sublicense, and/or sell copies of
+# the Software, and to permit persons to whom the Software
+# is furnished to do so, subject to the following
+# conditions:
+# 
+# The above copyright notice and this permission notice
+# shall be included in all copies or substantial portions
+# of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+# ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+# TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+# SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+# IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
+name: Rust CI
 on:
-  push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
+  push:
+    branches:
+    - master
+    - staging
+    - trying
 
 env:
-  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  CARGO_NET_RETRY: 10
+  CI: 1
+  RUST_BACKTRACE: short
+  RUSTFLAGS: "-D warnings -W unreachable-pub"
+  RUSTUP_MAX_RETRIES: 10
 
 jobs:
-  build:
+  rust:
+    name: Rust
+    runs-on: ${{ matrix.os }}
+    env:
+      CC: deny_c
 
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+        fetch-depth: 20
+
+    # We need to disable the existing toolchain to avoid updating rust-docs
+    # which takes a long time. The fastest way to do this is to rename the
+    # existing folder, as deleting it takes about as much time as not doing
+    # anything and just updating rust-docs.
+    - name: Rename existing rust toolchain (Windows)
+      if: matrix.os == 'windows-latest'
+      run: Rename-Item C:\Users\runneradmin\.rustup\toolchains\stable-x86_64-pc-windows-msvc C:\Users\runneradmin\.rustup\toolchains\stable-x86_64-pc-windows-msvc.old
+
+    # Work around https://github.com/actions/cache/issues/403 by using GNU tar
+    # instead of BSD tar.
+    - name: Install GNU tar
+      if: matrix.os == 'macos-latest'
+      run: |
+        brew install gnu-tar
+        echo PATH="/usr/local/opt/gnu-tar/libexec/gnubin:$PATH" >> $GITHUB_ENV
+
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        profile: minimal
+        override: true
+        components: rustfmt, rust-src
+
+    - name: Cache cargo directories
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Cache cargo target dir
+      uses: actions/cache@v2
+      with:
+        path: target
+        key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Compile
+      run: cargo test --no-run --locked
+
+    - name: Test
+      run: cargo test
+
+    - name: Prepare cache
+      run: cargo xtask pre-cache
+
+  # Weird targets to catch non-portable code
+  rust-cross:
+    name: Rust Cross
+    runs-on: ubuntu-latest
+
+    env:
+      targets: "powerpc-unknown-linux-gnu x86_64-unknown-linux-musl"
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        profile: minimal
+        override: true
+
+    - name: Install Rust targets
+      run: rustup target add ${{ env.targets }}
+
+    - name: Cache cargo directories
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Check
+      run: |
+        for target in ${{ env.targets }}; do
+          cargo check --target=$target --all-targets
+        done
