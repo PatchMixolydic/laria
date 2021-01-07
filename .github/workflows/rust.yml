@@ -38,7 +38,7 @@ env:
   CARGO_NET_RETRY: 10
   CI: 1
   RUST_BACKTRACE: short
-  RUSTFLAGS: "-D warnings -W unreachable-pub"
+  RUSTFLAGS: "-D warnings"
   RUSTUP_MAX_RETRIES: 10
 
 jobs:
@@ -99,46 +99,7 @@ jobs:
         key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
 
     - name: Compile
-      run: cargo test --no-run --locked
+      run: cargo +nightly test --no-run --locked
 
     - name: Test
-      run: cargo test
-
-    - name: Prepare cache
-      run: cargo xtask pre-cache
-
-  # Weird targets to catch non-portable code
-  rust-cross:
-    name: Rust Cross
-    runs-on: ubuntu-latest
-
-    env:
-      targets: "powerpc-unknown-linux-gnu x86_64-unknown-linux-musl"
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
-
-    - name: Install Rust toolchain
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        profile: minimal
-        override: true
-
-    - name: Install Rust targets
-      run: rustup target add ${{ env.targets }}
-
-    - name: Cache cargo directories
-      uses: actions/cache@v2
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-    - name: Check
-      run: |
-        for target in ${{ env.targets }}; do
-          cargo check --target=$target --all-targets
-        done
+      run: cargo +nightly test
