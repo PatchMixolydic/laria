@@ -1,0 +1,940 @@
+{
+    "name": "Laria",
+    "scopeName": "source.laria",
+    "patterns": [
+        {
+            "comment": "macro type metavariables",
+            "name": "meta.macro.metavariable.type.laria",
+            "match": "(\\$)((crate)|([A-Z][A-Za-z0-9_]*))((:)(block|expr|ident|item|lifetime|literal|meta|path?|stmt|tt|ty|vis))?",
+            "captures": {
+                "1": {
+                    "name": "keyword.operator.macro.dollar.laria"
+                },
+                "3": {
+                    "name": "keyword.other.crate.laria"
+                },
+                "4": {
+                    "name": "entity.name.type.metavariable.laria"
+                },
+                "6": {
+                    "name": "keyword.operator.key-value.laria"
+                },
+                "7": {
+                    "name": "variable.other.metavariable.specifier.laria"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "#keywords"
+                }
+            ]
+        },
+        {
+            "comment": "macro metavariables",
+            "name": "meta.macro.metavariable.laria",
+            "match": "(\\$)([a-z][A-Za-z0-9_]*)((:)(block|expr|ident|item|lifetime|literal|meta|path?|stmt|tt|ty|vis))?",
+            "captures": {
+                "1": {
+                    "name": "keyword.operator.macro.dollar.laria"
+                },
+                "2": {
+                    "name": "variable.other.metavariable.name.laria"
+                },
+                "4": {
+                    "name": "keyword.operator.key-value.laria"
+                },
+                "5": {
+                    "name": "variable.other.metavariable.specifier.laria"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "#keywords"
+                }
+            ]
+        },
+        {
+            "comment": "attributes",
+            "name": "meta.attribute.laria",
+            "begin": "(#)(\\!?)(\\[)",
+            "beginCaptures": {
+                "1": {
+                    "name": "punctuation.definition.attribute.laria"
+                },
+                "2": {
+                    "name": "keyword.operator.attribute.inner.laria"
+                },
+                "3": {
+                    "name": "punctuation.brackets.attribute.laria"
+                }
+            },
+            "end": "\\]",
+            "endCaptures": {
+                "0": {
+                    "name": "punctuation.brackets.attribute.laria"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "#comments"
+                },
+                {
+                    "include": "#keywords"
+                },
+                {
+                    "include": "#punctuation"
+                },
+                {
+                    "include": "#strings"
+                },
+                {
+                    "include": "#gtypes"
+                },
+                {
+                    "include": "#types"
+                }
+            ]
+        },
+        {
+            "comment": "modules",
+            "match": "(mod)\\s+((?:r#(?!crate|[Ss]elf|super))?[a-z][A-Za-z0-9_]*)",
+            "captures": {
+                "1": {
+                    "name": "storage.type.laria"
+                },
+                "2": {
+                    "name": "entity.name.module.laria"
+                }
+            }
+        },
+        {
+            "comment": "use statements",
+            "name": "meta.use.laria",
+            "begin": "\\b(use)\\s",
+            "beginCaptures": {
+                "1": {
+                    "name": "keyword.other.laria"
+                }
+            },
+            "end": ";",
+            "endCaptures": {
+                "0": {
+                    "name": "punctuation.semi.laria"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "#comments"
+                },
+                {
+                    "include": "#keywords"
+                },
+                {
+                    "include": "#namespaces"
+                },
+                {
+                    "include": "#punctuation"
+                },
+                {
+                    "include": "#types"
+                },
+                {
+                    "include": "#lvariables"
+                }
+            ]
+        },
+        {
+            "include": "#comments"
+        },
+        {
+            "include": "#lvariables"
+        },
+        {
+            "include": "#constants"
+        },
+        {
+            "include": "#gtypes"
+        },
+        {
+            "include": "#functions"
+        },
+        {
+            "include": "#types"
+        },
+        {
+            "include": "#keywords"
+        },
+        {
+            "include": "#macros"
+        },
+        {
+            "include": "#namespaces"
+        },
+        {
+            "include": "#punctuation"
+        },
+        {
+            "include": "#strings"
+        },
+        {
+            "include": "#variables"
+        }
+    ],
+    "repository": {
+        "comments": {
+            "patterns": [
+                {
+                    "comment": "documentation comments",
+                    "name": "comment.line.documentation.laria",
+                    "match": "^\\s*///.*"
+                },
+                {
+                    "comment": "line comments",
+                    "name": "comment.line.double-slash.laria",
+                    "match": "\\s*//.*"
+                }
+            ]
+        },
+        "constants": {
+            "patterns": [
+                {
+                    "comment": "ALL CAPS constants",
+                    "name": "constant.other.caps.laria",
+                    "match": "\\b[A-Z]{2}[A-Z0-9_]*\\b"
+                },
+                {
+                    "comment": "constant declarations",
+                    "match": "\\b(const)\\s+([A-Z][A-Za-z0-9_]*)\\b",
+                    "captures": {
+                        "1": {
+                            "name": "storage.type.laria"
+                        },
+                        "2": {
+                            "name": "constant.other.caps.laria"
+                        }
+                    }
+                },
+                {
+                    "comment": "decimal integers and floats",
+                    "name": "constant.numeric.decimal.laria",
+                    "match": "\\b\\d[\\d_]*(\\.?)[\\d_]*(?:(E)([+-])([\\d_]+))?(f32|f64|i128|i16|i32|i64|i8|isize|u128|u16|u32|u64|u8|usize)?\\b",
+                    "captures": {
+                        "1": {
+                            "name": "punctuation.separator.dot.decimal.laria"
+                        },
+                        "2": {
+                            "name": "keyword.operator.exponent.laria"
+                        },
+                        "3": {
+                            "name": "keyword.operator.exponent.sign.laria"
+                        },
+                        "4": {
+                            "name": "constant.numeric.decimal.exponent.mantissa.laria"
+                        },
+                        "5": {
+                            "name": "entity.name.type.numeric.laria"
+                        }
+                    }
+                },
+                {
+                    "comment": "hexadecimal integers",
+                    "name": "constant.numeric.hex.laria",
+                    "match": "\\b0x[\\da-fA-F_]+(i128|i16|i32|i64|i8|isize|u128|u16|u32|u64|u8|usize)?\\b",
+                    "captures": {
+                        "1": {
+                            "name": "entity.name.type.numeric.laria"
+                        }
+                    }
+                },
+                {
+                    "comment": "octal integers",
+                    "name": "constant.numeric.oct.laria",
+                    "match": "\\b0o[0-7_]+(i128|i16|i32|i64|i8|isize|u128|u16|u32|u64|u8|usize)?\\b",
+                    "captures": {
+                        "1": {
+                            "name": "entity.name.type.numeric.laria"
+                        }
+                    }
+                },
+                {
+                    "comment": "binary integers",
+                    "name": "constant.numeric.bin.laria",
+                    "match": "\\b0b[01_]+(i128|i16|i32|i64|i8|isize|u128|u16|u32|u64|u8|usize)?\\b",
+                    "captures": {
+                        "1": {
+                            "name": "entity.name.type.numeric.laria"
+                        }
+                    }
+                },
+                {
+                    "comment": "booleans",
+                    "name": "constant.language.bool.laria",
+                    "match": "\\b(true|false)\\b"
+                }
+            ]
+        },
+        "escapes": {
+            "comment": "escapes: ASCII, byte, Unicode, quote, regex",
+            "name": "constant.character.escape.laria",
+            "match": "(\\\\)(?:(?:(x[0-7][0-7a-fA-F])|(u(\\{)[\\da-fA-F]{4,6}(\\}))|.))",
+            "captures": {
+                "1": {
+                    "name": "constant.character.escape.backslash.laria"
+                },
+                "2": {
+                    "name": "constant.character.escape.bit.laria"
+                },
+                "3": {
+                    "name": "constant.character.escape.unicode.laria"
+                },
+                "4": {
+                    "name": "constant.character.escape.unicode.punctuation.laria"
+                },
+                "5": {
+                    "name": "constant.character.escape.unicode.punctuation.laria"
+                }
+            }
+        },
+        "functions": {
+            "patterns": [
+                {
+                    "comment": "pub in path",
+                    "match": "\\b(pub)(\\()",
+                    "captures": {
+                        "1": {
+                            "name": "keyword.other.laria"
+                        },
+                        "2": {
+                            "name": "punctuation.brackets.round.laria"
+                        }
+                    }
+                },
+                {
+                    "comment": "function definition",
+                    "name": "meta.function.definition.laria",
+                    "begin": "\\b(fn)\\s+((?:r#(?!crate|[Ss]elf|super))?[A-Za-z0-9_]+)((\\()|(\\[))",
+                    "beginCaptures": {
+                        "1": {
+                            "name": "keyword.other.fn.laria"
+                        },
+                        "2": {
+                            "name": "entity.name.function.laria"
+                        },
+                        "4": {
+                            "name": "punctuation.brackets.round.laria"
+                        },
+                        "5": {
+                            "name": "punctuation.brackets.square.laria"
+                        }
+                    },
+                    "end": "\\{|;",
+                    "endCaptures": {
+                        "0": {
+                            "name": "punctuation.brackets.curly.laria"
+                        }
+                    },
+                    "patterns": [
+                        {
+                            "include": "#comments"
+                        },
+                        {
+                            "include": "#keywords"
+                        },
+                        {
+                            "include": "#lvariables"
+                        },
+                        {
+                            "include": "#constants"
+                        },
+                        {
+                            "include": "#gtypes"
+                        },
+                        {
+                            "include": "#functions"
+                        },
+                        {
+                            "include": "#macros"
+                        },
+                        {
+                            "include": "#namespaces"
+                        },
+                        {
+                            "include": "#punctuation"
+                        },
+                        {
+                            "include": "#strings"
+                        },
+                        {
+                            "include": "#types"
+                        },
+                        {
+                            "include": "#variables"
+                        }
+                    ]
+                },
+                {
+                    "comment": "function/method calls, chaining",
+                    "name": "meta.function.call.laria",
+                    "begin": "((?:r#(?!crate|[Ss]elf|super))?[A-Za-z0-9_]+)(\\()",
+                    "beginCaptures": {
+                        "1": {
+                            "name": "entity.name.function.laria"
+                        },
+                        "2": {
+                            "name": "punctuation.brackets.round.laria"
+                        }
+                    },
+                    "end": "\\)",
+                    "endCaptures": {
+                        "0": {
+                            "name": "punctuation.brackets.round.laria"
+                        }
+                    },
+                    "patterns": [
+                        {
+                            "include": "#comments"
+                        },
+                        {
+                            "include": "#keywords"
+                        },
+                        {
+                            "include": "#lvariables"
+                        },
+                        {
+                            "include": "#constants"
+                        },
+                        {
+                            "include": "#gtypes"
+                        },
+                        {
+                            "include": "#functions"
+                        },
+                        {
+                            "include": "#macros"
+                        },
+                        {
+                            "include": "#namespaces"
+                        },
+                        {
+                            "include": "#punctuation"
+                        },
+                        {
+                            "include": "#strings"
+                        },
+                        {
+                            "include": "#types"
+                        },
+                        {
+                            "include": "#variables"
+                        }
+                    ]
+                },
+                {
+                    "comment": "function/method calls with generic parameters",
+                    "name": "meta.function.call.laria",
+                    "begin": "((?:r#(?!crate|[Ss]elf|super))?[A-Za-z0-9_]+)(?=\\[.*\\]\\()",
+                    "beginCaptures": {
+                        "1": {
+                            "name": "entity.name.function.laria"
+                        }
+                    },
+                    "end": "\\)",
+                    "endCaptures": {
+                        "0": {
+                            "name": "punctuation.brackets.round.laria"
+                        }
+                    },
+                    "patterns": [
+                        {
+                            "include": "#comments"
+                        },
+                        {
+                            "include": "#keywords"
+                        },
+                        {
+                            "include": "#lvariables"
+                        },
+                        {
+                            "include": "#constants"
+                        },
+                        {
+                            "include": "#gtypes"
+                        },
+                        {
+                            "include": "#functions"
+                        },
+                        {
+                            "include": "#macros"
+                        },
+                        {
+                            "include": "#namespaces"
+                        },
+                        {
+                            "include": "#punctuation"
+                        },
+                        {
+                            "include": "#strings"
+                        },
+                        {
+                            "include": "#types"
+                        },
+                        {
+                            "include": "#variables"
+                        }
+                    ]
+                }
+            ]
+        },
+        "keywords": {
+            "patterns": [
+                {
+                    "comment": "control flow keywords",
+                    "name": "keyword.control.laria",
+                    "match": "\\b(break|continue|else|for|if|loop|match|return|while|yield)\\b"
+                },
+                {
+                    "comment": "storage keywords",
+                    "name": "storage.type.laria",
+                    "match": "\\b(const|enum|extern|let|macro|mod|static|struct|type)\\b"
+                },
+                {
+                    "comment": "other keywords",
+                    "name": "keyword.other.laria",
+                    "match": "\\b(as|in|pub|use)\\b"
+                },
+                {
+                    "comment": "reserved keywords",
+                    "name": "invalid.illegal.laria",
+                    "match": "\\b(async|await|become|dyn|gen|iface|impl|mut|priv|ref|trait|try|where)\\b"
+                },
+                {
+                    "comment": "fn",
+                    "name": "keyword.other.fn.laria",
+                    "match": "\\bfn\\b"
+                },
+                {
+                    "comment": "lam",
+                    "name": "keyword.other.lam.laria",
+                    "match": "\\blam\\b"
+                },
+                {
+                    "comment": "logical operators",
+                    "name": "keyword.operator.logical.laria",
+                    "match": "(\\^|\\||\\|\\||&&|<<|>>|!)(?!=)"
+                },
+                {
+                    "comment": "logical AND, reference",
+                    "name": "keyword.operator.borrow.and.laria",
+                    "match": "&(?![&=])"
+                },
+                {
+                    "comment": "assignment operators",
+                    "name": "keyword.operator.assignment.laria",
+                    "match": "(\\+=|-=|\\*=|/=|%=|\\^=|&=|\\|=|<<=|>>=)"
+                },
+                {
+                    "comment": "single equal",
+                    "name": "keyword.operator.assignment.equal.laria",
+                    "match": "(?<![<>])=(?!=|>)"
+                },
+                {
+                    "comment": "comparison operators",
+                    "name": "keyword.operator.comparison.laria",
+                    "match": "(=(=)?(?!>)|!=|<=|(?<!=)>=)"
+                },
+                {
+                    "comment": "math operators",
+                    "name": "keyword.operator.math.laria",
+                    "match": "(([+%]|(\\*(?!\\w)))(?!=))|(-(?!>))|(/(?!/))"
+                },
+                {
+                    "comment": "less than, greater than (special case)",
+                    "match": "(?:\\b|(?:(\\))|(\\])|(\\})))[ \\t]+([<>])[ \\t]+(?:\\b|(?:(\\()|(\\[)|(\\{)))",
+                    "captures": {
+                        "1": {
+                            "name": "punctuation.brackets.round.laria"
+                        },
+                        "2": {
+                            "name": "punctuation.brackets.square.laria"
+                        },
+                        "3": {
+                            "name": "punctuation.brackets.curly.laria"
+                        },
+                        "4": {
+                            "name": "keyword.operator.comparison.laria"
+                        },
+                        "5": {
+                            "name": "punctuation.brackets.round.laria"
+                        },
+                        "6": {
+                            "name": "punctuation.brackets.square.laria"
+                        },
+                        "7": {
+                            "name": "punctuation.brackets.curly.laria"
+                        }
+                    }
+                },
+                {
+                    "comment": "namespace operator",
+                    "name": "keyword.operator.namespace.laria",
+                    "match": "::"
+                },
+                {
+                    "comment": "dereference asterisk",
+                    "match": "(\\*)(?=\\w+)",
+                    "captures": {
+                        "1": {
+                            "name": "keyword.operator.dereference.laria"
+                        }
+                    }
+                },
+                {
+                    "comment": "subpattern binding",
+                    "name": "keyword.operator.subpattern.laria",
+                    "match": "@"
+                },
+                {
+                    "comment": "dot access",
+                    "name": "keyword.operator.access.dot.laria",
+                    "match": "\\.(?!\\.)"
+                },
+                {
+                    "comment": "ranges, range patterns",
+                    "name": "keyword.operator.range.laria",
+                    "match": "\\.{2}(=|\\.)?"
+                },
+                {
+                    "comment": "colon",
+                    "name": "keyword.operator.key-value.laria",
+                    "match": ":(?!:)"
+                },
+                {
+                    "comment": "arrow",
+                    "name": "keyword.operator.arrow.skinny.laria",
+                    "match": "->"
+                },
+                {
+                    "comment": "fat arrow",
+                    "name": "keyword.operator.arrow.fat.laria",
+                    "match": "=>"
+                },
+                {
+                    "comment": "dollar macros",
+                    "name": "keyword.operator.macro.dollar.laria",
+                    "match": "\\$"
+                },
+                {
+                    "comment": "question mark operator, macro kleene matcher, partial application hole",
+                    "name": "keyword.operator.question.laria",
+                    "match": "\\?"
+                }
+            ]
+        },
+        "interpolations": {
+            "comment": "curly brace interpolations",
+            "name": "meta.interpolation.laria",
+            "match": "({)[^\"{}]*(})",
+            "captures": {
+                "1": {
+                    "name": "punctuation.definition.interpolation.laria"
+                },
+                "2": {
+                    "name": "punctuation.definition.interpolation.laria"
+                }
+            }
+        },
+        "macros": {
+            "patterns": [
+                {
+                    "comment": "macros",
+                    "name": "meta.macro.laria",
+                    "match": "(([a-z_][A-Za-z0-9_]*!)|([A-Z_][A-Za-z0-9_]*!))",
+                    "captures": {
+                        "2": {
+                            "name": "entity.name.function.macro.laria"
+                        },
+                        "3": {
+                            "name": "entity.name.type.macro.laria"
+                        }
+                    }
+                }
+            ]
+        },
+        "namespaces": {
+            "patterns": [
+                {
+                    "comment": "namespace (non-type, non-function path segment)",
+                    "match": "(?<![A-Za-z0-9_])([a-z0-9_]+)((?<!super|self)::)",
+                    "captures": {
+                        "1": {
+                            "name": "entity.name.namespace.laria"
+                        },
+                        "2": {
+                            "name": "keyword.operator.namespace.laria"
+                        }
+                    }
+                }
+            ]
+        },
+        "types": {
+            "patterns": [
+                {
+                    "comment": "numeric types",
+                    "match": "(?<![A-Za-z])(f32|f64|i128|i16|i32|i64|i8|isize|u128|u16|u32|u64|u8|usize)\\b",
+                    "captures": {
+                        "1": {
+                            "name": "entity.name.type.numeric.laria"
+                        }
+                    }
+                },
+                {
+                    "comment": "parameterized types",
+                    "begin": "\\b([A-Z][A-Za-z0-9]*)(\\[)",
+                    "beginCaptures": {
+                        "1": {
+                            "name": "entity.name.type.laria"
+                        },
+                        "2": {
+                            "name": "punctuation.brackets.square.laria"
+                        }
+                    },
+                    "end": "]",
+                    "endCaptures": {
+                        "0": {
+                            "name": "punctuation.brackets.square.laria"
+                        }
+                    },
+                    "patterns": [
+                        {
+                            "include": "#comments"
+                        },
+                        {
+                            "include": "#keywords"
+                        },
+                        {
+                            "include": "#lvariables"
+                        },
+                        {
+                            "include": "#punctuation"
+                        },
+                        {
+                            "include": "#types"
+                        },
+                        {
+                            "include": "#variables"
+                        }
+                    ]
+                },
+                {
+                    "comment": "primitive types",
+                    "name": "entity.name.type.primitive.laria",
+                    "match": "\\b(bool|char|str)\\b"
+                },
+                {
+                    "comment": "trait declarations",
+                    "match": "\\b(trait)\\s+([A-Z][A-Za-z0-9]*)\\b",
+                    "captures": {
+                        "1": {
+                            "name": "storage.type.laria"
+                        },
+                        "2": {
+                            "name": "entity.name.type.trait.laria"
+                        }
+                    }
+                },
+                {
+                    "comment": "struct declarations",
+                    "match": "\\b(struct)\\s+([A-Z][A-Za-z0-9]*)\\b",
+                    "captures": {
+                        "1": {
+                            "name": "storage.type.laria"
+                        },
+                        "2": {
+                            "name": "entity.name.type.struct.laria"
+                        }
+                    }
+                },
+                {
+                    "comment": "enum declarations",
+                    "match": "\\b(enum)\\s+([A-Z][A-Za-z0-9_]*)\\b",
+                    "captures": {
+                        "1": {
+                            "name": "storage.type.laria"
+                        },
+                        "2": {
+                            "name": "entity.name.type.enum.laria"
+                        }
+                    }
+                },
+                {
+                    "comment": "type declarations",
+                    "match": "\\b(type)\\s+([A-Z][A-Za-z0-9_]*)\\b",
+                    "captures": {
+                        "1": {
+                            "name": "storage.type.laria"
+                        },
+                        "2": {
+                            "name": "entity.name.type.declaration.laria"
+                        }
+                    }
+                },
+                {
+                    "comment": "types",
+                    "name": "entity.name.type.laria",
+                    "match": "\\b[A-Z][A-Za-z0-9]*\\b(?!!)"
+                }
+            ]
+        },
+        "gtypes": {
+            "patterns": [
+                {
+                    "comment": "option types",
+                    "name": "entity.name.type.option.laria",
+                    "match": "\\b(Some|None)\\b"
+                },
+                {
+                    "comment": "result types",
+                    "name": "entity.name.type.result.laria",
+                    "match": "\\b(Ok|Err)\\b"
+                }
+            ]
+        },
+        "punctuation": {
+            "patterns": [
+                {
+                    "comment": "comma",
+                    "name": "punctuation.comma.laria",
+                    "match": ","
+                },
+                {
+                    "comment": "curly braces",
+                    "name": "punctuation.brackets.curly.laria",
+                    "match": "[{}]"
+                },
+                {
+                    "comment": "parentheses, round brackets",
+                    "name": "punctuation.brackets.round.laria",
+                    "match": "[()]"
+                },
+                {
+                    "comment": "semicolon",
+                    "name": "punctuation.semi.laria",
+                    "match": ";"
+                },
+                {
+                    "comment": "square brackets",
+                    "name": "punctuation.brackets.square.laria",
+                    "match": "[\\[\\]]"
+                },
+                {
+                    "comment": "angle brackets",
+                    "name": "punctuation.brackets.angle.laria",
+                    "match": "(?<!=)[<>]"
+                }
+            ]
+        },
+        "strings": {
+            "patterns": [
+                {
+                    "comment": "double-quoted strings and byte strings",
+                    "name": "string.quoted.double.laria",
+                    "begin": "(b?)(\")",
+                    "beginCaptures": {
+                        "1": {
+                            "name": "string.quoted.byte.raw.laria"
+                        },
+                        "2": {
+                            "name": "punctuation.definition.string.laria"
+                        }
+                    },
+                    "end": "\"",
+                    "endCaptures": {
+                        "0": {
+                            "name": "punctuation.definition.string.laria"
+                        }
+                    },
+                    "patterns": [
+                        {
+                            "include": "#escapes"
+                        },
+                        {
+                            "include": "#interpolations"
+                        }
+                    ]
+                },
+                {
+                    "comment": "double-quoted raw strings and raw byte strings",
+                    "name": "string.quoted.double.laria",
+                    "begin": "(b?r)(#*)(\")",
+                    "beginCaptures": {
+                        "1": {
+                            "name": "string.quoted.byte.raw.laria"
+                        },
+                        "2": {
+                            "name": "punctuation.definition.string.raw.laria"
+                        },
+                        "3": {
+                            "name": "punctuation.definition.string.laria"
+                        }
+                    },
+                    "end": "(\")(\\2)",
+                    "endCaptures": {
+                        "1": {
+                            "name": "punctuation.definition.string.laria"
+                        },
+                        "2": {
+                            "name": "punctuation.definition.string.raw.laria"
+                        }
+                    }
+                },
+                {
+                    "comment": "characters and bytes",
+                    "name": "string.quoted.single.char.laria",
+                    "begin": "(b)?(')",
+                    "beginCaptures": {
+                        "1": {
+                            "name": "string.quoted.byte.raw.laria"
+                        },
+                        "2": {
+                            "name": "punctuation.definition.char.laria"
+                        }
+                    },
+                    "end": "'",
+                    "endCaptures": {
+                        "0": {
+                            "name": "punctuation.definition.char.laria"
+                        }
+                    },
+                    "patterns": [
+                        {
+                            "include": "#escapes"
+                        }
+                    ]
+                }
+            ]
+        },
+        "lvariables": {
+            "patterns": [
+                {
+                    "comment": "self",
+                    "name": "variable.language.self.laria",
+                    "match": "\\b[Ss]elf\\b"
+                },
+                {
+                    "comment": "super",
+                    "name": "variable.language.super.laria",
+                    "match": "\\bsuper\\b"
+                }
+            ]
+        },
+        "variables": {
+            "patterns": [
+                {
+                    "comment": "variables",
+                    "name": "variable.other.laria",
+                    "match": "\\b(?<!(?<!\\.)\\.)(?:r#(?!(crate|[Ss]elf|super)))?[a-z0-9_]+\\b"
+                }
+            ]
+        }
+    }
+}

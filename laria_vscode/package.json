@@ -1,0 +1,43 @@
+{
+    "name": "laria_vscode",
+    "displayName": "Laria",
+    "description": "Syntax highlighting for Laria",
+    "version": "0.1.0",
+    "publisher": "PatchMixolydic",
+
+    "engines": {
+        "vscode": "^0.10.1"
+    },
+
+    "categories": [
+        "Programming Languages"
+    ],
+
+    "keywords": [
+        "laria"
+    ],
+
+    "contributes": {
+        "languages": [
+            {
+                "id": "laria",
+                "aliases": [
+                    "Laria",
+                    "laria"
+                ],
+                "extensions": [
+                    ".lri"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+
+        "grammars": [
+            {
+                "language": "laria",
+                "scopeName": "source.laria",
+                "path": "./syntaxes/laria.tmLanguage.json"
+            }
+        ]
+    }
+}
