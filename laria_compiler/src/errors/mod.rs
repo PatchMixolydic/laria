@@ -1,8 +1,8 @@
 mod builder;
 mod span;
 
-pub use self::builder::DiagnosticBuilder;
-pub use self::span::Span;
+pub(crate) use self::builder::DiagnosticBuilder;
+pub(crate) use self::span::Span;
 
 #[derive(Clone, Copy)]
 enum Level {
