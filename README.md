@@ -37,6 +37,8 @@ struct Vec2 {
         self.x /= length;
         self.y /= length;
     }
+
+    // TODO: figure out a design for operator overloading
 }
 
 enum Either[T, U] {
