@@ -1,3 +1,4 @@
+#![allow(clippy::comparison_chain)]
 #![allow(incomplete_features)]
 #![allow(unused)]
 #![feature(inline_const)]

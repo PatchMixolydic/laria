@@ -122,9 +122,11 @@ fn lower_expression(expression: Expression, vm_script: &mut BuildVMScript) -> is
             };
 
             // TODO: handle this properly
-            vm_script
-                .instructions
-                .extend_from_slice(&value.to_bytes().expect("Couldn't convert literal to bytes"));
+            vm_script.instructions.extend_from_slice(
+                &value
+                    .into_bytes()
+                    .expect("Couldn't convert literal to bytes"),
+            );
             1
         },
 
@@ -225,7 +227,7 @@ fn lower_expression(expression: Expression, vm_script: &mut BuildVMScript) -> is
             };
 
             let name_bytes = Value::String(fn_name)
-                .to_bytes()
+                .into_bytes()
                 .expect("couldn't convert fn name to bytes");
 
             vm_script.instructions.push(Instruction::Push as u8);

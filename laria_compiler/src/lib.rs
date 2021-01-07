@@ -1,3 +1,4 @@
+#![allow(clippy::comparison_chain)]
 #![allow(clippy::needless_doctest_main)]
 #![allow(unused)]
 #![feature(or_patterns)]

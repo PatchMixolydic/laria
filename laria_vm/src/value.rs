@@ -161,7 +161,7 @@ impl Value {
         }
     }
 
-    pub fn to_bytes(self) -> Result<Vec<u8>, ToBytesError> {
+    pub fn into_bytes(self) -> Result<Vec<u8>, ToBytesError> {
         let mut res = vec![self.kind() as u8];
 
         match self {
