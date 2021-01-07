@@ -348,25 +348,21 @@ it's likely that syntax extensions will be restricted to the host application.
 I have no idea what the API for defining a syntax extension will look like,
 so please stay tuned.
 
-Regardless, syntax extensions would be fairly freeform. A syntax extension
-might end up looking like this:
+Regardless, syntax extensions would be fairly freeform. A syntax extension used
+to describe spritesheets in a video game might end up looking like this:
 ```rust
-// We're in the scripting language.
-spriteset "resources/sprites/enemy.tspr", 512, 512 {
+spriteset! "resources/sprites/enemy.tspr", 512, 512 {
     fairy = (0, 0, 16, 16),
     dynamic_typing = (16, 0, 16, 16),
     seija = (32, 0, 32, 32),
 }
 ```
 
-This might look familiar if you've seen the [spriteset description format].
 You could also have something like this:
-
-[spriteset description format]: ./triplicata_sprites.md
 
 ```rust
 // what!
-c {
+c! {
     void foobar(int x, unsigned char y) {
         for (int i = 0; i < x; i++) {
             printf("%c", y);
