@@ -4,7 +4,7 @@ embeddable scripting language.
 
 Currently, Laria is a very early work in progress, so it is almost definitely
 not ready for production use. The codebase may be quite messy, as the project
-is currently in the prototyping phase, and many oddities may be placeholders or
+is currently in the prototyping phase. Many oddities are likely placeholders or
 prototypes.
 
 The \[projected] syntax of Laria currently borrows (:P) heavily from Rust.
