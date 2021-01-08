@@ -26,6 +26,8 @@ pub enum ParseError {
     UnexpectedEOF,
     #[error("A value would cause an overflow")]
     ValueTooLarge,
+    #[error("A function that takes too many arguments was defined")]
+    TooManyArgsOnFnDef,
 }
 
 /// Used to deduplicate the bodies of Parser::expect_and_unwrap_{type}.
@@ -196,7 +198,9 @@ impl<'src> Parser<'src> {
     fn parse_fn(&mut self) -> Result<Function, ParseError> {
         let mut res = Function::new();
         res.span = self.expect_item(Expected::Keyword(Keyword::Fn))?.span;
-        res.name = self.expect_item(Expected::Ident)?.kind.unwrap_ident();
+        let name_token = self.expect_item(Expected::Ident)?;
+        let name_span = name_token.span;
+        res.name = name_token.kind.unwrap_ident();
 
         self.expect_item(Expected::OpenDelim(DelimKind::Paren))?;
 
@@ -212,8 +216,30 @@ impl<'src> Parser<'src> {
             {
                 return Err(self.unexpected());
             }
+
+            // If there is a comma, eat it
+            self.eat(Expected::Symbol(Symbol::Comma));
         }
+
         self.expect_item(Expected::CloseDelim(DelimKind::Paren))?;
+
+        // TODO: does this belong here?
+        if res.arguments.len() > u8::MAX as usize {
+            self.error_ctx
+                .build_error(format!("function `{}` has too many arguments", res.name))
+                .span_label(
+                    name_span,
+                    format!("`{}` has {} arguments", res.name, res.arguments.len()),
+                )
+                .note(format!(
+                    "Laria currently only allows for up to {} arguments on functions",
+                    u8::MAX
+                ))
+                .note("this may change in the future")
+                .emit();
+
+            return Err(ParseError::TooManyArgsOnFnDef);
+        }
 
         res.body = self.parse_block()?;
         res.span.grow_to_contain(&res.body.span);
