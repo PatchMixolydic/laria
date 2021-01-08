@@ -232,12 +232,23 @@ fn lower_expression(expression: Expression, vm_script: &mut BuildVMScript) -> is
 
             vm_script.instructions.push(Instruction::Push as u8);
             vm_script.instructions.extend_from_slice(&name_bytes);
-            // TODO: arguments
-            // TODO: store functions in the globals table? idk
             vm_script.instructions.push(Instruction::GetGlobal as u8);
+
+            let mut args_stack_delta = 0;
+            let arity: u8 = args.len().try_into().expect("too many fn args");
+            for arg in args {
+                args_stack_delta += lower_expression(arg, vm_script);
+            }
+
             vm_script
                 .instructions
                 .push(Instruction::JumpSubroutine as u8);
+            vm_script.instructions.push(arity);
+
+            for _ in 0..args_stack_delta {
+                // TODO: PopN
+                vm_script.instructions.push(Instruction::Pop as u8);
+            }
 
             1
         },

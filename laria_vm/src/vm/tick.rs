@@ -555,13 +555,13 @@ impl VM {
                 self.program_counter = address;
             }),
 
-            Instruction::CondBranchSub => one_arg!(x => {
+            Instruction::CondBranchSub => {
                 if self.flags.contains(Flags::COMPARISON) {
-                    self.call(x)?
+                    self.call()?
                 }
-            }),
+            },
 
-            Instruction::JumpSubroutine => one_arg!(x => self.call(x)?),
+            Instruction::JumpSubroutine => self.call()?,
 
             Instruction::Return => one_arg!(ret_val => {
                 let old_frame = self

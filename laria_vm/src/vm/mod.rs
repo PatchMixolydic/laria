@@ -64,9 +64,25 @@ impl VM {
         res
     }
 
-    fn call(&mut self, maybe_fn: Value) -> Result<(), VMError> {
-        match maybe_fn {
-            Value::Subroutine(sub) => {
+    fn call(&mut self) -> Result<(), VMError> {
+        // All call functions take the number of function arguments
+        // as an operand
+        let arity = self.script.instructions[self.program_counter] as usize;
+        self.program_counter += 1;
+
+        // Make sure the stack's actually big enough to hold
+        // the arguments and the target function
+        if self.stack.len() < arity + 1 {
+            return Err(VMError::NotEnoughValues {
+                expected: arity + 1,
+                found: self.stack.len(),
+            });
+        }
+
+        // From the top of the stack, skip over the function arguments
+        let fn_index = self.stack.len() - 1 - arity;
+        match self.stack[fn_index] {
+            Value::Subroutine(ref sub) => {
                 if sub.start_address() > self.script.instructions.len() {
                     return Err(VMError::OutOfBoundsJump {
                         pc: self.program_counter,

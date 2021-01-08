@@ -340,6 +340,7 @@ impl<'src> Parser<'src> {
         } else if next_token_kind == TokenKind::OpenDelim(DelimKind::Paren) {
             self.bump();
 
+            // TODO: tuples
             let expr = {
                 match self.parse_expression(&[Expected::CloseDelim(DelimKind::Paren)], 0)? {
                     Expression {
@@ -413,9 +414,20 @@ impl<'src> Parser<'src> {
             }
 
             if self.eat(Expected::OpenDelim(DelimKind::Paren)) {
-                // This is a function call... presumably.
-                // TODO: args
-                let args = Vec::new();
+                // Oh! This is a function call
+                // Let's eat the arguments
+                let mut args = Vec::new();
+                while !self.check_next(Expected::CloseDelim(DelimKind::Paren)) {
+                    let expr = self.parse_expression(
+                        &[
+                            Expected::CloseDelim(DelimKind::Paren),
+                            Expected::Symbol(Symbol::Comma),
+                        ],
+                        0,
+                    )?;
+
+                    args.push(expr);
+                }
 
                 let close_paren = self.expect_item(Expected::CloseDelim(DelimKind::Paren))?;
                 span.grow_to_contain(&close_paren.span);

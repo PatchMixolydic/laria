@@ -37,10 +37,22 @@ pub enum Instruction {
     Jump,
     /// Branches to a target function
     /// if the `COMPARISON` flag is set.
-    /// Sets up a stack frame for the `Return`
-    /// instruction.
+    /// Sets up a stack frame for the `Return` instruction.
+    ///
+    /// This instruction takes the number of arguments the function takes
+    /// as an argument. This may seem strange: since subroutines
+    /// store their arity and native functions just get a reference
+    /// to the stack (for now), it seems that one could simply push
+    /// the function immediately before branching. Doing it this way,
+    /// however, carries the following benefits:
+    /// * Backtraces become easier to generate
+    /// * Tail call optimization can be implemented by reading the start address
+    ///   from the function on the stack.
     CondBranchSub,
     /// Jumps unconditionally to a target function.
+    /// Takes the number of arguments the target function
+    /// takes as an argument. See [`CondBranchSub`] for the reason
+    /// behind this.
     /// Sets up a stack frame for the `Return`
     /// instruction.
     JumpSubroutine,
