@@ -1,5 +1,5 @@
 [package]
-name = "laria_compiler"
+name = "laria_backend"
 description = "The Laria compiler"
 license = "MIT"
 version = "0.1.0"

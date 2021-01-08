@@ -1,4 +1,4 @@
-use laria_compiler::script;
+use laria_backend::script;
 use pico_args::Arguments;
 use rustc_version_runtime::version_meta;
 use std::{

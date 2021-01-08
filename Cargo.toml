@@ -3,7 +3,7 @@ cargo-features = ["strip"]
 [workspace]
 members = [
     "laria",
-    "laria_compiler",
+    "laria_backend",
     "laria_vm"
 ]
 

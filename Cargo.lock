@@ -38,13 +38,13 @@ checksum = "08c48aae112d48ed9f069b33538ea9e3e90aa263cfa3d1c24309612b1f7472de"
 name = "laria"
 version = "0.1.0"
 dependencies = [
- "laria_compiler",
+ "laria_backend",
  "pico-args",
  "rustc_version_runtime",
 ]
 
 [[package]]
-name = "laria_compiler"
+name = "laria_backend"
 version = "0.1.0"
 dependencies = [
  "annotate-snippets",
