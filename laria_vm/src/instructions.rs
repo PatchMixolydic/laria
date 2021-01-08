@@ -62,6 +62,7 @@ pub enum Instruction {
     /// Halts the VM immediately.
     Halt,
     /// Takes a float argument, x. Pauses the VM for x seconds.
+    /// This is likely temporary and may be removed when coroutines are added.
     Wait,
     /// Given a name, retrieves a global variable and pushes it
     /// on top of the stack.
