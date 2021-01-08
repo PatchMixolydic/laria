@@ -39,6 +39,7 @@ Adapted from the [Rust Code of Conduct][rust-code], which is adapted from the [N
 
 The Rust Code of Conduct is licensed under the MIT license, which follows:
 
+```
 Permission is hereby granted, free of charge, to any
 person obtaining a copy of this software and associated
 documentation files (the "Software"), to deal in the
@@ -62,6 +63,7 @@ CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
+```
 
 The Laria Code of Conduct is also licensed under [the MIT license](./license).
 
