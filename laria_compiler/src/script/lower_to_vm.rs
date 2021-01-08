@@ -2,13 +2,13 @@ use laria_vm::{
     instructions::Instruction,
     subroutine::Subroutine,
     value::{Value, ValueKind},
-    Script as VMScript,
+    Script as VMScript
 };
 use std::{collections::HashMap, convert::TryInto};
 
 use super::ast::{
     BinaryOperator, Expression, ExpressionKind, Function, Script, Statement, StatementKind,
-    UnaryOperator,
+    UnaryOperator
 };
 use crate::token::LiteralKind;
 
@@ -16,11 +16,11 @@ use crate::token::LiteralKind;
 // `lower_to_bytecode`
 
 /// This is used to hold state while building the [`VMScript`].
-/// This allows us to keep [`VMScript`]'s members private.
+/// This means [`VMScript`]'s members can stay private.
 struct BuildVMScript {
     instructions: Vec<u8>,
     constants: HashMap<String, Value>,
-    globals: HashMap<String, Value>,
+    globals: HashMap<String, Value>
 }
 
 impl BuildVMScript {
@@ -28,7 +28,7 @@ impl BuildVMScript {
         Self {
             instructions: Vec::new(),
             constants: HashMap::new(),
-            globals: HashMap::new(),
+            globals: HashMap::new()
         }
     }
 }
@@ -44,13 +44,13 @@ pub fn lower_script(script: Script) -> VMScript {
     let mut vm_script = BuildVMScript::new();
 
     for func in script.functions {
-        let vm_func = lower_function(func, &mut vm_script);
+        lower_function(func, &mut vm_script);
     }
 
     vm_script.into()
 }
 
-fn lower_function(function: Function, vm_script: &mut BuildVMScript) -> Subroutine {
+fn lower_function(function: Function, vm_script: &mut BuildVMScript) {
     let start_address = vm_script.instructions.len();
 
     for statement in function.body.contents {
@@ -67,21 +67,20 @@ fn lower_function(function: Function, vm_script: &mut BuildVMScript) -> Subrouti
             // Implicitly return ()
             vm_script.instructions.push(Instruction::Push as u8);
             vm_script.instructions.push(ValueKind::Unit as u8);
-        },
+        }
     }
 
     vm_script.instructions.push(Instruction::Return as u8);
 
-    Subroutine::new(
-        function.name,
-        // TODO: handle this properly
-        function
-            .arguments
-            .len()
-            .try_into()
-            .expect("too many fn args"),
-        start_address,
-    )
+    // TODO: handle this properly
+    let num_args = function
+        .arguments
+        .len()
+        .try_into()
+        .expect("too many fn args");
+
+    let subroutine = Subroutine::new(function.name, num_args, start_address);
+    vm_script.globals.insert(subroutine.name().to_owned(), Value::Subroutine(subroutine));
 }
 
 fn lower_statement(statement: Statement, vm_script: &mut BuildVMScript) {
@@ -102,7 +101,7 @@ fn lower_statement(statement: Statement, vm_script: &mut BuildVMScript) {
 
         StatementKind::Declaration((name, ty), rhs) => {
             todo!("Declaration `let {}: {:?} = {};`", name, ty, rhs)
-        },
+        }
     }
 }
 
@@ -117,14 +116,14 @@ fn lower_expression(expression: Expression, vm_script: &mut BuildVMScript) -> is
             let value = match kind {
                 LiteralKind::Integer(i) => Value::Integer(i),
                 LiteralKind::String(s) => Value::String(s),
-                LiteralKind::Float(f) => Value::Float(f),
+                LiteralKind::Float(f) => Value::Float(f)
             };
 
             // TODO: handle this properly
             vm_script.instructions.extend_from_slice(
                 &value
                     .into_bytes()
-                    .expect("Couldn't convert literal to bytes"),
+                    .expect("Couldn't convert literal to bytes")
             );
             1
         },
@@ -200,7 +199,7 @@ fn lower_expression(expression: Expression, vm_script: &mut BuildVMScript) -> is
 
                 BinaryOperator::ShiftRight => todo!("decide on shift right default"),
                 BinaryOperator::Assign => todo!("assignment"),
-                BinaryOperator::As => todo!("as cast"),
+                BinaryOperator::As => todo!("as cast")
             }
 
             // Left + right - 2 popped + 1 pushed
@@ -213,7 +212,7 @@ fn lower_expression(expression: Expression, vm_script: &mut BuildVMScript) -> is
 
             match op {
                 UnaryOperator::Negative => vm_script.instructions.push(Instruction::Negate as u8),
-                UnaryOperator::Not => vm_script.instructions.push(Instruction::Not as u8),
+                UnaryOperator::Not => vm_script.instructions.push(Instruction::Not as u8)
             }
 
             expr_delta
@@ -222,7 +221,7 @@ fn lower_expression(expression: Expression, vm_script: &mut BuildVMScript) -> is
         ExpressionKind::FnCall(maybe_fn_name, args) => {
             let fn_name = match maybe_fn_name.kind {
                 ExpressionKind::Identifier(id) => id,
-                _ => todo!("function call with {}", maybe_fn_name),
+                _ => todo!("function call with {}", maybe_fn_name)
             };
 
             let name_bytes = Value::String(fn_name)
@@ -244,7 +243,7 @@ fn lower_expression(expression: Expression, vm_script: &mut BuildVMScript) -> is
         ExpressionKind::If {
             cond,
             then,
-            otherwise,
+            otherwise
         } => todo!("if"),
 
         ExpressionKind::Loop(_, _) => todo!("loop"),
@@ -257,6 +256,6 @@ fn lower_expression(expression: Expression, vm_script: &mut BuildVMScript) -> is
 
         ExpressionKind::Identifier(_) => todo!("id"),
 
-        ExpressionKind::Empty => 0,
+        ExpressionKind::Empty => 0
     }
 }

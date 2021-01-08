@@ -94,7 +94,7 @@ impl VM {
                         },
                     };
 
-                println!(" {}", value.kind());
+                println!(" {:?}", value);
 
                 self.stack.push(value);
                 self.program_counter += advance;
@@ -569,19 +569,10 @@ impl VM {
                     .pop()
                     .expect("Executed a return instruction with no stack frames");
 
-                match ret_val {
-                    Value::Float(f) => println!("return {}", f),
-                    Value::Integer(i) => println!("return {}", i),
-                    Value::UnsignedInt(i) => println!("return {}", i),
-                    Value::String(ref s) => println!("return {}", s),
-                    Value::Unit => println!("return ()"),
-                    Value::Subroutine(s) => println!("return subroutine#{}", s),
-                    Value::NativeFn(f) => println!("return native fn at {:#x}", f as usize)
-                }
+                println!("VM::tick: returned {:?}", ret_val);
 
                 if self.stack_frames.is_empty() {
-
-                    todo!("return {} from top level", ret_val.kind());
+                    todo!("return {} from top level", ret_val);
                 }
 
                 self.stack.truncate(old_frame.stack_base);

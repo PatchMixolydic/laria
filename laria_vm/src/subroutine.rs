@@ -9,6 +9,7 @@ pub enum FromBytesError {
     Utf8Error(#[source] Utf8Error),
 }
 
+#[derive(Clone, Debug)]
 pub struct Subroutine {
     name: String,
     num_arguments: u8,
@@ -57,5 +58,17 @@ impl<'name> Subroutine {
         ]);
 
         Ok(Self::new(name, num_arguments, start_address as usize))
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn num_arguments(&self) -> u8 {
+        self.num_arguments
+    }
+
+    pub fn start_address(&self) -> usize {
+        self.start_address
     }
 }

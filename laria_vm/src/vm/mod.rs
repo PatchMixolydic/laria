@@ -1,6 +1,6 @@
 pub mod tick;
 
-use std::{collections::HashMap, str::Utf8Error};
+use std::str::Utf8Error;
 use thiserror::Error;
 
 use crate::{stack_frame::StackFrame, value::Value, Flags, Script};
@@ -26,7 +26,7 @@ pub enum VMError {
     #[error("Tried to access nonexistent constant `{0}`")]
     NoSuchConstant(String),
     #[error("Tried to access an out-of-bounds stack value (tried to access {index}, but the stack length is {stack_len})")]
-    StackIndexTooLarge { index: usize, stack_len: usize },
+    StackIndexTooLarge { index: usize, stack_len: usize }
 }
 
 pub struct VM {
@@ -34,8 +34,7 @@ pub struct VM {
     flags: Flags,
     program_counter: usize,
     stack: Vec<Value>,
-    stack_frames: Vec<StackFrame>,
-    globals: HashMap<String, Value>,
+    stack_frames: Vec<StackFrame>
 }
 
 impl VM {
@@ -48,23 +47,17 @@ impl VM {
             flags: Flags::empty(),
             program_counter: 0,
             stack: Vec::new(),
-            stack_frames,
-            globals: HashMap::new(),
+            stack_frames
         }
     }
 
-    fn call(&mut self, maybe_fn_name: Value) -> Result<(), VMError> {
-        let target = match maybe_fn_name {
-            Value::String(fn_name) => self.get_global(&fn_name)?,
-            _ => return Err(VMError::WrongType),
-        };
-
-        match target {
-            Value::Subroutine(start) => {
-                if *start > self.script.instructions.len() {
+    fn call(&mut self, maybe_fn: Value) -> Result<(), VMError> {
+        match maybe_fn {
+            Value::Subroutine(sub) => {
+                if sub.start_address() > self.script.instructions.len() {
                     return Err(VMError::OutOfBoundsJump {
                         pc: self.program_counter,
-                        script_len: self.script.instructions.len(),
+                        script_len: self.script.instructions.len()
                     });
                 }
 
@@ -75,25 +68,26 @@ impl VM {
                 // reference to `self.globals`.
                 let return_address = self.program_counter;
 
-                self.program_counter = *start;
+                self.program_counter = sub.start_address();
                 self.stack_frames
-                    .push(StackFrame::new(self.stack.len(), self.program_counter));
+                    .push(StackFrame::new(self.stack.len(), return_address));
             },
 
             Value::NativeFn(f) => f(&mut self.stack),
 
-            _ => return Err(VMError::WrongType),
+            _ => return Err(VMError::WrongType)
         }
 
         Ok(())
     }
 
     pub fn set_global(&mut self, name: impl Into<String>, value: Value) {
-        self.globals.insert(name.into(), value);
+        self.script.globals.insert(name.into(), value);
     }
 
     pub fn get_global(&self, name: &str) -> Result<&Value, VMError> {
-        self.globals
+        self.script
+            .globals
             .get(name)
             .ok_or_else(|| VMError::NoSuchGlobal(name.into()))
     }
