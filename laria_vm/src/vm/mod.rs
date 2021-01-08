@@ -37,18 +37,31 @@ pub struct VM {
     stack_frames: Vec<StackFrame>,
 }
 
+/// Temporary function to print a value.
+/// This is used as a native function in the VM.
+fn native_print(stack: &mut Vec<Value>) {
+    match stack.last() {
+        Some(val) => println!("{}", val),
+        None => panic!("Tried to print from an empty stack"),
+    }
+}
+
 impl VM {
     pub fn new(script: Script) -> Self {
         let mut stack_frames = Vec::with_capacity(16);
         stack_frames.push(StackFrame::new(0, 0));
 
-        Self {
+        let mut res = Self {
             script,
             flags: Flags::empty(),
             program_counter: 0,
             stack: Vec::new(),
             stack_frames,
-        }
+        };
+
+        // TODO: temp
+        res.set_global("print", Value::NativeFn(native_print));
+        res
     }
 
     fn call(&mut self, maybe_fn: Value) -> Result<(), VMError> {
