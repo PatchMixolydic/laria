@@ -73,7 +73,6 @@ pub enum Instruction {
     /// Given an offset from the current function's stack base,
     /// sets a local variable.
     SetLocal,
-    /// Given an index into the constants array,
-    /// retrieves a constant and pushes it on top of the stack.
+    /// Given a name, retrieves a constant and pushes it on top of the stack.
     GetConstant,
 }

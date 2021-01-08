@@ -673,18 +673,18 @@ impl VM {
                 }
             }),
 
-            Instruction::GetConstant => one_arg!(maybe_index => {
-                let index = match maybe_index {
-                    Value::UnsignedInt(res) => res as usize,
+            Instruction::GetConstant => one_arg!(maybe_name => {
+                let name = match maybe_name {
+                    Value::String(res) => res,
                     _ => return Err(VMError::WrongType)
                 };
 
-                match self.script.constants.get(index) {
+                match self.script.constants.get(&name) {
                     Some(value) => {
                         self.stack.push(value.clone());
                     },
 
-                    None => return Err(VMError::NoSuchConstant(index))
+                    None => return Err(VMError::NoSuchConstant(name))
                 }
             }),
         };

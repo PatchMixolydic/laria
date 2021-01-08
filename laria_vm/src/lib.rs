@@ -13,6 +13,7 @@ pub mod value;
 pub mod vm;
 
 use bitflags::bitflags;
+use std::collections::HashMap;
 
 use value::Value;
 
@@ -27,17 +28,21 @@ bitflags! {
 }
 
 pub struct Script {
-    pub(crate) _version: u8,
     pub(crate) instructions: Vec<u8>,
-    pub(crate) constants: Vec<Value>,
+    pub(crate) constants: HashMap<String, Value>,
+    pub(crate) globals: HashMap<String, Value>,
 }
 
 impl Script {
-    pub fn new(version: u8, instructions: Vec<u8>, constants: Vec<Value>) -> Self {
+    pub fn new(
+        instructions: Vec<u8>,
+        constants: HashMap<String, Value>,
+        globals: HashMap<String, Value>,
+    ) -> Self {
         Self {
-            _version: version,
             instructions,
             constants,
+            globals,
         }
     }
 }

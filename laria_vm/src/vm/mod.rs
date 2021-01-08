@@ -23,8 +23,8 @@ pub enum VMError {
     Utf8Error(#[source] Utf8Error),
     #[error("Encountered an unknown type tag ({0})")]
     UnknownTypeTag(u8),
-    #[error("Tried to access nonexistent constant with index {0}")]
-    NoSuchConstant(usize),
+    #[error("Tried to access nonexistent constant `{0}`")]
+    NoSuchConstant(String),
     #[error("Tried to access an out-of-bounds stack value (tried to access {index}, but the stack length is {stack_len})")]
     StackIndexTooLarge { index: usize, stack_len: usize },
 }

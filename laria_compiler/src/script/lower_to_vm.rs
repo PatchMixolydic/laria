@@ -4,7 +4,7 @@ use laria_vm::{
     value::{Value, ValueKind},
     Script as VMScript,
 };
-use std::convert::TryInto;
+use std::{collections::HashMap, convert::TryInto};
 
 use super::ast::{
     BinaryOperator, Expression, ExpressionKind, Function, Script, Statement, StatementKind,
@@ -19,23 +19,23 @@ use crate::token::LiteralKind;
 /// This allows us to keep [`VMScript`]'s members private.
 struct BuildVMScript {
     instructions: Vec<u8>,
-    constants: Vec<Value>,
-    globals: Vec<Value>,
+    constants: HashMap<String, Value>,
+    globals: HashMap<String, Value>,
 }
 
 impl BuildVMScript {
-    const fn new() -> Self {
+    fn new() -> Self {
         Self {
             instructions: Vec::new(),
-            constants: Vec::new(),
-            globals: Vec::new(),
+            constants: HashMap::new(),
+            globals: HashMap::new(),
         }
     }
 }
 
 impl From<BuildVMScript> for VMScript {
     fn from(build: BuildVMScript) -> Self {
-        VMScript::new(1, build.instructions, build.constants)
+        VMScript::new(build.instructions, build.constants, build.globals)
     }
 }
 
@@ -43,8 +43,8 @@ impl From<BuildVMScript> for VMScript {
 pub fn lower_script(script: Script) -> VMScript {
     let mut vm_script = BuildVMScript::new();
 
-    for f in script.functions {
-        lower_function(f, &mut vm_script);
+    for func in script.functions {
+        let vm_func = lower_function(func, &mut vm_script);
     }
 
     vm_script.into()
