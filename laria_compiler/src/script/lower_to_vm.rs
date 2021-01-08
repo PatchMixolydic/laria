@@ -88,6 +88,7 @@ fn lower_statement(statement: Statement, vm_script: &mut BuildVMScript) {
     match statement.kind {
         StatementKind::Expression(expr) => {
             let stack_delta = lower_expression(expr, vm_script);
+            assert!(stack_delta == 0 || stack_delta == 1);
 
             // Expression statements should have no effect
             if stack_delta > 0 {
@@ -96,8 +97,6 @@ fn lower_statement(statement: Statement, vm_script: &mut BuildVMScript) {
                     // TODO: `pop x` instruction?
                     vm_script.instructions.push(Instruction::Pop as u8);
                 }
-            } else if stack_delta < 0 {
-                panic!("stack delta is {} after lowering expr?", stack_delta)
             }
         },
 
