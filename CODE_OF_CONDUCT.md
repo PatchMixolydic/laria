@@ -65,7 +65,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-The Laria Code of Conduct is also licensed under [the MIT license](./license).
+The Laria Code of Conduct is also licensed under [the MIT license](./LICENSE).
 
 [rust-code]: https://www.rust-lang.org/policies/code-of-conduct
 [node-code]: https://blog.izs.me/2012/08/policy-on-trolling
