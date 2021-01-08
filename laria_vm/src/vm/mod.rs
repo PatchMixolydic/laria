@@ -31,6 +31,8 @@ pub enum VMError {
         "Incorrect number of arguments provided to function (expected {expected}, found {found})"
     )]
     WrongNumArguments { expected: usize, found: usize },
+    #[error("Returned {0} from the entry point")]
+    ReturnFromTopLevel(Value),
 }
 
 pub struct VM {

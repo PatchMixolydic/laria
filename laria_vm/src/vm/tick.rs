@@ -578,7 +578,8 @@ impl VM {
                 }
 
                 if self.stack_frames.is_empty() {
-                    todo!("return {} from top level", ret_val);
+                    // TODO: might be temporary
+                    return Err(VMError::ReturnFromTopLevel(ret_val));
                 }
 
                 self.stack.truncate(old_frame.stack_base);
