@@ -39,6 +39,7 @@ name = "laria"
 version = "0.1.0"
 dependencies = [
  "laria_backend",
+ "laria_vm",
  "pico-args",
  "rustc_version_runtime",
 ]

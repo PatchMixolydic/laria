@@ -1,4 +1,5 @@
 use laria_backend::script;
+use laria_vm::vm::VM;
 use pico_args::Arguments;
 use rustc_version_runtime::version_meta;
 use std::{
@@ -11,6 +12,8 @@ use std::{
 const PACKAGE_NAME: &str = env!("CARGO_PKG_NAME");
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
+// TODO: this is no longer accessible from `laria_backend`;
+// this should probably be passed as an argument
 pub static VERBOSE: AtomicBool = AtomicBool::new(false);
 
 #[derive(Debug)]
@@ -18,6 +21,7 @@ struct Args {
     help: bool,
     verbose: bool,
     version: bool,
+    compile: bool,
     source_file: Option<String>,
 }
 
@@ -32,6 +36,7 @@ fn usage() -> String {
             "   -h, --help    - view help\n",
             "   -v, --verbose - enable verbose output\n",
             "   -V, --version - show version\n",
+            "   -c, --compile - compile the input file to bytecode\n",
         ),
         filename
     )
@@ -44,6 +49,7 @@ fn process_args() -> Result<Args, pico_args::Error> {
         help: args.contains(["-h", "--help"]),
         verbose: args.contains(["-v", "--verbose"]),
         version: args.contains(["-V", "--version"]),
+        compile: args.contains(["-c", "--compile"]),
         source_file: args.free_from_str()?,
     })
 }
@@ -92,11 +98,32 @@ fn main() {
     });
     let source_path = Path::new(&source_file);
 
-    if args.verbose {
-        println!("Compiling {}...", source_file)
-    }
+    if args.compile {
+        if args.verbose {
+            println!("Compiling {}...", source_file)
+        }
 
-    let ast = script::lex_and_parse(source_path);
-    println!("{}", ast);
-    todo!("lower to file");
+        let ast = script::lex_and_parse(source_path);
+        println!("{}", ast);
+        todo!("lower to file");
+    } else {
+        if args.verbose {
+            println!("Interpreting {}...", source_file);
+        }
+
+        let ast = script::lex_and_parse(source_path);
+        let script = script::lower_to_vm::lower_script(ast);
+        let mut vm = VM::new(script);
+
+        loop {
+            match vm.tick() {
+                Ok(_) => (),
+
+                Err(err) => {
+                    eprintln!("vm error: {}", err);
+                    break;
+                },
+            }
+        }
+    }
 }

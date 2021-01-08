@@ -1,4 +1,15 @@
 fn main() {
-    4;
-    -(4 + 8 / 2) == -8
+    print("About to call f");
+    f();
+    g(1);
+    print("Hooray!");
+}
+
+fn f() {
+    print("This is f!");
+}
+
+fn g(x: i32) {
+    print("g, it sure is boring around here");
+    //print(x);
 }
