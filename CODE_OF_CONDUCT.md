@@ -31,14 +31,39 @@ In the Laria community, we strive to go the extra step to look out for each othe
 
 And if someone takes issue with something you said or did, resist the urge to be defensive. Just stop doing what it was they complained about and apologize. Even if you feel you were misinterpreted or unfairly accused, chances are good there was something you could've communicated better — remember that it's your responsibility to make your fellow contributors comfortable. Everyone wants to get along and we are all here first and foremost because we want to talk about cool technology. You will find that people will be eager to assume good intent and forgive as long as you earn their trust.
 
-The enforcement policies listed above apply to any official Laria venues; including (but not limited to) all communication channels; GitHub repositories under PatchMixolydic <!-- TODO: laria-lang? -->; and any forums. For other projects adopting the Laria Code of Conduct, please contact the maintainers of those projects for enforcement. If you wish to use this code of conduct for your own project, consider explicitly mentioning your moderation policy or making a copy with your own moderation policy so as to avoid confusion.
+The enforcement policies listed above apply to any official Laria venues; including (but not limited to) all communication channels; GitHub repositories under PatchMixolydic<!-- TODO: laria-lang? -->; and any forums. For other projects adopting the Laria Code of Conduct, please contact the maintainers of those projects for enforcement. If you wish to use this code of conduct for your own project, consider explicitly mentioning your moderation policy or making a copy with your own moderation policy so as to avoid confusion.
 
 ## Attribution
 
 Adapted from the [Rust Code of Conduct][rust-code], which is adapted from the [Node.js Policy on Trolling][node-code] as well as the [Contributor Covenant v1.3.0].
 
-The Rust Code of Conduct is licensed under the MIT license. [It does not appear to be considered a substantial portion of `rustc`][rust-subst], so the license has not been included.
-If you are a member of the Rust team and feel that this is incorrect, please contact us at the email address above.
+The Rust Code of Conduct is licensed under the MIT license, which follows:
+
+Permission is hereby granted, free of charge, to any
+person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the
+Software without restriction, including without
+limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software
+is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice
+shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+
+The Laria Code of Conduct is also licensed under [the MIT license](./license).
 
 [rust-code]: https://www.rust-lang.org/policies/code-of-conduct
 [node-code]: https://blog.izs.me/2012/08/policy-on-trolling
