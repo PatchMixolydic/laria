@@ -26,7 +26,7 @@ pub enum VMError {
     #[error("Tried to access nonexistent constant `{0}`")]
     NoSuchConstant(String),
     #[error("Tried to access an out-of-bounds stack value (tried to access {index}, but the stack length is {stack_len})")]
-    StackIndexTooLarge { index: usize, stack_len: usize }
+    StackIndexTooLarge { index: usize, stack_len: usize },
 }
 
 pub struct VM {
@@ -34,7 +34,7 @@ pub struct VM {
     flags: Flags,
     program_counter: usize,
     stack: Vec<Value>,
-    stack_frames: Vec<StackFrame>
+    stack_frames: Vec<StackFrame>,
 }
 
 impl VM {
@@ -47,7 +47,7 @@ impl VM {
             flags: Flags::empty(),
             program_counter: 0,
             stack: Vec::new(),
-            stack_frames
+            stack_frames,
         }
     }
 
@@ -57,7 +57,7 @@ impl VM {
                 if sub.start_address() > self.script.instructions.len() {
                     return Err(VMError::OutOfBoundsJump {
                         pc: self.program_counter,
-                        script_len: self.script.instructions.len()
+                        script_len: self.script.instructions.len(),
                     });
                 }
 
@@ -75,7 +75,7 @@ impl VM {
 
             Value::NativeFn(f) => f(&mut self.stack),
 
-            _ => return Err(VMError::WrongType)
+            _ => return Err(VMError::WrongType),
         }
 
         Ok(())

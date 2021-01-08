@@ -1,13 +1,4 @@
-use std::str::Utf8Error;
-use thiserror::Error;
-
-#[derive(Clone, Copy, Debug, Error)]
-pub enum FromBytesError {
-    #[error("Byte slice not big enough for a subroutine (expected {expected}, got {actual})")]
-    NotEnoughBytes { expected: usize, actual: usize },
-    #[error("Error while parsing a string: {0}")]
-    Utf8Error(#[source] Utf8Error),
-}
+use crate::value::FromBytesError;
 
 #[derive(Clone, Debug)]
 pub struct Subroutine {
@@ -16,7 +7,7 @@ pub struct Subroutine {
     start_address: usize,
 }
 
-impl<'name> Subroutine {
+impl Subroutine {
     pub const fn new(name: String, num_arguments: u8, start_address: usize) -> Self {
         Self {
             name,
@@ -25,7 +16,11 @@ impl<'name> Subroutine {
         }
     }
 
-    pub fn from_bytes(bytes: &'name [u8]) -> Result<Self, FromBytesError> {
+    /// Tries to read a `Subroutine` from a byte slice.
+    /// On success, returns the `Subroutine` read and the number of bytes
+    /// that were read (in other words, the number of bytes to advance the
+    /// program counter by).
+    pub fn from_bytes(bytes: &[u8]) -> Result<(Self, usize), FromBytesError> {
         if bytes.is_empty() {
             return Err(FromBytesError::NotEnoughBytes {
                 expected: 1,
@@ -57,7 +52,10 @@ impl<'name> Subroutine {
             bytes[name_length + 5],
         ]);
 
-        Ok(Self::new(name, num_arguments, start_address as usize))
+        Ok((
+            Self::new(name, num_arguments, start_address as usize),
+            expected_bytes_len,
+        ))
     }
 
     pub fn name(&self) -> &str {
