@@ -6,15 +6,10 @@ use std::{
     env::current_exe,
     path::{Path, PathBuf},
     process::exit,
-    sync::atomic::{AtomicBool, Ordering},
 };
 
 const PACKAGE_NAME: &str = env!("CARGO_PKG_NAME");
 const VERSION: &str = env!("CARGO_PKG_VERSION");
-
-// TODO: this is no longer accessible from `laria_backend`;
-// this should probably be passed as an argument
-pub static VERBOSE: AtomicBool = AtomicBool::new(false);
 
 #[derive(Debug)]
 struct Args {
@@ -71,8 +66,6 @@ fn main() {
         },
     };
 
-    VERBOSE.store(args.verbose, Ordering::SeqCst);
-
     if args.help {
         println!("{}", usage());
         return;
@@ -113,7 +106,7 @@ fn main() {
 
         let ast = script::lex_and_parse(source_path);
         let script = script::lower_to_vm::lower_script(ast);
-        let mut vm = VM::new(script);
+        let mut vm = VM::new(script, args.verbose);
 
         loop {
             match vm.tick() {

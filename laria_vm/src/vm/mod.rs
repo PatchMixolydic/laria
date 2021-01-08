@@ -39,6 +39,9 @@ pub struct VM {
     program_counter: usize,
     stack: Vec<Value>,
     stack_frames: Vec<StackFrame>,
+    /// Enables extra output which may be helpful
+    /// for debugging the VM
+    trace_execution: bool,
 }
 
 /// Temporary function to print a value.
@@ -51,7 +54,7 @@ fn native_print(stack: &mut Vec<Value>) {
 }
 
 impl VM {
-    pub fn new(script: Script) -> Self {
+    pub fn new(script: Script, trace_execution: bool) -> Self {
         let mut stack_frames = Vec::with_capacity(16);
         stack_frames.push(StackFrame::new(0, 0));
 
@@ -61,6 +64,7 @@ impl VM {
             program_counter: 0,
             stack: Vec::new(),
             stack_frames,
+            trace_execution,
         };
 
         // TODO: temp

@@ -68,9 +68,11 @@ impl VM {
         let instruction = Instruction::from_u8(opcode).ok_or(VMError::UnknownOpcode(opcode))?;
         self.program_counter += 1;
 
-        print!("VM::tick: {:?}", instruction);
-        if !matches!(instruction, Instruction::Push) {
-            println!();
+        if self.trace_execution {
+            print!("VM::tick: {:?}", instruction);
+            if !matches!(instruction, Instruction::Push) {
+                println!();
+            }
         }
 
         match instruction {
@@ -94,7 +96,9 @@ impl VM {
                         },
                     };
 
-                println!(" {:?}", value);
+                if self.trace_execution {
+                    println!(" {:?}", value);
+                }
 
                 self.stack.push(value);
                 self.program_counter += advance;
@@ -569,7 +573,9 @@ impl VM {
                     .pop()
                     .expect("Executed a return instruction with no stack frames");
 
-                println!("VM::tick: returned {:?}", ret_val);
+                if self.trace_execution {
+                    println!("VM::tick: returned {:?}", ret_val);
+                }
 
                 if self.stack_frames.is_empty() {
                     todo!("return {} from top level", ret_val);
