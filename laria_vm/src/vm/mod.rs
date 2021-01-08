@@ -27,6 +27,10 @@ pub enum VMError {
     NoSuchConstant(String),
     #[error("Tried to access an out-of-bounds stack value (tried to access {index}, but the stack length is {stack_len})")]
     StackIndexTooLarge { index: usize, stack_len: usize },
+    #[error(
+        "Incorrect number of arguments provided to function (expected {expected}, found {found})"
+    )]
+    WrongNumArguments { expected: usize, found: usize },
 }
 
 pub struct VM {
@@ -83,6 +87,13 @@ impl VM {
         let fn_index = self.stack.len() - 1 - arity;
         match self.stack[fn_index] {
             Value::Subroutine(ref sub) => {
+                if sub.num_arguments() as usize != arity {
+                    return Err(VMError::WrongNumArguments {
+                        expected: sub.num_arguments() as usize,
+                        found: arity,
+                    });
+                }
+
                 if sub.start_address() > self.script.instructions.len() {
                     return Err(VMError::OutOfBoundsJump {
                         pc: self.program_counter,

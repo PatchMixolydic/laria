@@ -426,6 +426,7 @@ impl<'src> Parser<'src> {
                         0,
                     )?;
 
+                    self.eat(Expected::Symbol(Symbol::Comma));
                     args.push(expr);
                 }
 
