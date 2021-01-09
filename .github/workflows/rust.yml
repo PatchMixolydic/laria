@@ -38,7 +38,7 @@ env:
   CARGO_NET_RETRY: 10
   CI: 1
   RUST_BACKTRACE: short
-  RUSTFLAGS: "-D warnings"
+  RUSTDOCFLAGS: "-F broken-intra-doc-links"
   RUSTUP_MAX_RETRIES: 10
 
 jobs:
@@ -100,6 +100,9 @@ jobs:
 
     - name: Format
       run: cargo +nightly fmt -- --check
+
+    - name: Document
+      run: cargo +nightly doc --document-private-items
 
     - name: Compile
       run: cargo +nightly test --no-run --locked
