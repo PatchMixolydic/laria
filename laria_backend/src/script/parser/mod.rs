@@ -714,6 +714,8 @@ impl<'src> Parser<'src> {
 
     /// This function is similar to [`bind_power_for_binop`], but for
     /// unary operators. The returned value is the right binding power.
+    ///
+    /// [`bind_power_for_binop`]: Parser::bind_power_for_binop
     fn bind_power_for_unary_op(&self, operator: &UnaryOperator) -> u8 {
         match operator {
             UnaryOperator::Negative | UnaryOperator::Not => 23,
