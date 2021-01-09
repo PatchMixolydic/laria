@@ -101,11 +101,11 @@ jobs:
     - name: Format
       run: cargo +nightly fmt -- --check
 
-    - name: Document
-      run: cargo +nightly doc --document-private-items
-
     - name: Compile
       run: cargo +nightly test --no-run --locked
+
+    - name: Document
+      run: cargo +nightly doc --document-private-items
 
     - name: Test
       run: cargo +nightly test
