@@ -31,12 +31,15 @@ pub enum Instruction {
     /// Pushes the value of the comparison flag onto the stack.
     PushComparison,
     /// Branches to a target address
-    /// if the `COMPARISON` flag is set.
+    /// if the `COMPARISON` flag is clear.
+    /// Branching when `COMPARISON` is clear is
+    /// an optimization to avoid negating the
+    /// conditions on `if` statements.
     CondBranch,
     /// Jumps unconditionally to a target address.
     Jump,
     /// Branches to a target function
-    /// if the `COMPARISON` flag is set.
+    /// if the `COMPARISON` flag is clear.
     /// Sets up a stack frame for the `Return` instruction.
     ///
     /// This instruction takes the number of arguments the function takes

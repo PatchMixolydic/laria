@@ -545,7 +545,7 @@ impl VM {
                     _ => return Err(VMError::WrongType)
                 };
 
-                if self.flags.contains(Flags::COMPARISON) {
+                if !self.flags.contains(Flags::COMPARISON) {
                     self.program_counter = address;
                 }
             }),
@@ -560,7 +560,7 @@ impl VM {
             }),
 
             Instruction::CondBranchSub => {
-                if self.flags.contains(Flags::COMPARISON) {
+                if !self.flags.contains(Flags::COMPARISON) {
                     self.call()?
                 }
             },

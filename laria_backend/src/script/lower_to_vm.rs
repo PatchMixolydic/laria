@@ -4,7 +4,7 @@ use laria_vm::{
     value::{Value, ValueKind},
     Script as VMScript,
 };
-use std::{collections::HashMap, convert::TryInto};
+use std::{collections::HashMap, convert::TryInto, ops::Range};
 
 use super::ast::{
     BinaryOperator, Expression, ExpressionKind, Function, Script, Statement, StatementKind,
@@ -104,6 +104,46 @@ fn lower_statement(statement: Statement, vm_script: &mut BuildVMScript) {
         StatementKind::Declaration((name, ty), rhs) => {
             todo!("Declaration `let {}: {:?} = {};`", name, ty, rhs)
         },
+    }
+}
+
+/// Emits a jump instruction with a temporary target address.
+/// Returns the range in `vm_script.instructions` that holds the address.
+fn emit_temp_jump_target(jump: Instruction, vm_script: &mut BuildVMScript) -> Range<usize> {
+    vm_script.instructions.push(Instruction::Push as u8);
+
+    let tmp_target = Value::UnsignedInt(0xDEADBEEF0BADCAFE)
+        .into_bytes()
+        .expect("couldn't convert jump target into bytes");
+
+    let mut target_range = {
+        // This will be the first byte of the target once it's pushed
+        let start = vm_script.instructions.len();
+        vm_script.instructions.extend_from_slice(&tmp_target);
+
+        start..vm_script.instructions.len()
+    };
+
+    vm_script.instructions.push(jump as u8);
+    target_range
+}
+
+/// Given `tmp_target_range`, a range that holds a temporary
+/// jump target address in `vm_script.instructions` (probably
+/// returned by [`emit_temp_jump_target`]), and `real_target`,
+/// the actual jump target, write the real jump target into
+/// `vm_script.instructions`.
+fn patch_real_jump_target(
+    tmp_target_range: Range<usize>,
+    real_target: usize,
+    vm_script: &mut BuildVMScript,
+) {
+    let real_target = Value::UnsignedInt(real_target as u64)
+        .into_bytes()
+        .expect("couldn't convert jump target into bytes");
+
+    for (real_target_idx, tmp_target_idx) in tmp_target_range.enumerate() {
+        vm_script.instructions[tmp_target_idx] = real_target[real_target_idx];
     }
 }
 
@@ -257,13 +297,63 @@ fn lower_expression(expression: Expression, vm_script: &mut BuildVMScript) -> is
             cond,
             then,
             otherwise,
-        } => todo!("if"),
+        } => {
+            lower_expression(*cond, vm_script);
+
+            if vm_script.instructions.last().copied() == Some(Instruction::PushComparison as u8) {
+                // We don't need this; we have CondBranch!
+                vm_script.instructions.pop();
+            }
+
+            // This may end up being the else target in reality,
+            // but for now this is a good guess.
+            let mut exit_target_range = emit_temp_jump_target(Instruction::CondBranch, vm_script);
+
+            // If `cond` is false, execution will jump ahead;
+            // otherwise, it continues on. Because of this,
+            // the `then` block is lowered first.
+            let then_expr = {
+                let then_span = then.span;
+                Expression::new(ExpressionKind::Block(then), then_span)
+            };
+            lower_expression(then_expr, vm_script);
+
+            if let Some(else_block) = otherwise {
+                // We have an else block. The "exit target range" we created
+                // is actually an else target range. Give it a better name and
+                // generate the correct exit target range.
+                let else_target_range = exit_target_range;
+                exit_target_range = emit_temp_jump_target(Instruction::Jump, vm_script);
+
+                // The else jump target is now one after the end of vm_script.instructions.
+                // Now we can set the jump target for if the condition is false.
+                patch_real_jump_target(else_target_range, vm_script.instructions.len(), vm_script);
+
+                let else_expr = {
+                    let else_span = else_block.span;
+                    Expression::new(ExpressionKind::Block(else_block), else_span)
+                };
+                lower_expression(else_expr, vm_script);
+            }
+
+            // Now we can set the exit jump target
+            patch_real_jump_target(exit_target_range, vm_script.instructions.len(), vm_script);
+
+            1
+        },
 
         ExpressionKind::Loop(_, _) => todo!("loop"),
 
         ExpressionKind::While(_, _) => todo!("while"),
 
-        ExpressionKind::Block(_) => todo!("block expr"),
+        ExpressionKind::Block(block) => {
+            // TODO: do this properly
+            for statement in block.contents {
+                lower_statement(statement, vm_script);
+            }
+
+            0
+        },
 
         ExpressionKind::PartialApp(_, _) => todo!("partial app"),
 

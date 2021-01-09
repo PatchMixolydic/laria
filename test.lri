@@ -3,6 +3,34 @@ fn main() {
     f();
     g(1);
     print("Hooray!");
+
+    if 2 + 2 == 4 {
+        print("math works!");
+    } else {
+        print("help!");
+    }
+
+    print("okay!");
+
+    if 2 + 2 == 5 {
+        print("that's wrong!");
+    } else {
+        print("excluded middles abound!");
+    }
+
+    print("jmp for joy!");
+
+    if 1 == 1 {
+        print("true is true!");
+    }
+
+    print("what about false?");
+
+    if 0 == 1 {
+        print("false is true?");
+    }
+
+    print("Cool!");
 }
 
 fn f() {
