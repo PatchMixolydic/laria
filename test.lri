@@ -11,5 +11,5 @@ fn f() {
 
 fn g(x: i32) {
     print("g, it sure is boring around here");
-    //print(x);
+    // print(x);
 }

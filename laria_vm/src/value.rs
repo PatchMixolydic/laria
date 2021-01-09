@@ -231,7 +231,7 @@ impl fmt::Debug for Value {
 
             Value::NativeFn(func) => f
                 .debug_tuple("NativeFn")
-                .field(&(func as *const _ as usize))
+                .field(&(func as *const _))
                 .finish(),
         }
     }
