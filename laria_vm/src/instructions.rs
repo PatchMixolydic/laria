@@ -55,6 +55,8 @@ pub enum Instruction {
     /// behind this.
     /// Sets up a stack frame for the `Return`
     /// instruction.
+    ///
+    /// [`CondBranchSub`]: Instruction::CondBranchSub
     JumpSubroutine,
     /// Return from a subroutine.
     /// If the stack is empty, this halts the VM.
