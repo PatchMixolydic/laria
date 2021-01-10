@@ -48,11 +48,13 @@ pub struct VM {
 
 /// Temporary function to print a value.
 /// This is used as a native function in the VM.
-fn native_print(stack: &mut Vec<Value>) {
-    match stack.last() {
+fn native_print(stack: &mut Vec<Value>) -> Value {
+    match stack.pop() {
         Some(val) => println!("{}", val),
         None => panic!("Tried to print from an empty stack"),
     }
+
+    Value::Unit
 }
 
 impl VM {
@@ -119,7 +121,11 @@ impl VM {
                     .push(StackFrame::new(stack_base, return_address));
             },
 
-            Value::NativeFn(f) => f(&mut self.stack),
+            Value::NativeFn(f) => {
+                let res = f(&mut self.stack);
+                self.stack.pop();
+                self.stack.push(res);
+            },
 
             _ => return Err(VMError::WrongType),
         }

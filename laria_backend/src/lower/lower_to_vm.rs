@@ -35,8 +35,13 @@ impl From<Lower> for VMScript {
 
 impl Lower {
     fn new() -> Self {
+        // TODO: hack, remove when we call a function to start
+        let instructions = vec![Instruction::Push as u8, ValueKind::Unit as u8];
+        let mut locals_stack = Vec::with_capacity(16);
+        locals_stack.push("");
+
         Self {
-            instructions: Vec::new(),
+            instructions,
             constants: HashMap::new(),
             globals: HashMap::new(),
             locals_stack: Vec::with_capacity(16),
@@ -316,11 +321,6 @@ impl Lower {
 
                 self.instructions.push(Instruction::JumpSubroutine as u8);
                 self.instructions.push(arity);
-
-                for _ in 0..arity {
-                    // TODO: PopN
-                    self.instructions.push(Instruction::Pop as u8);
-                }
             },
 
             ExpressionKind::If {

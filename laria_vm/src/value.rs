@@ -7,7 +7,7 @@ use crate::subroutine::Subroutine;
 
 // Using a `Box<dyn FnMut>` here causes issues
 // when trying to call native functions.
-pub type NativeFn = fn(&mut Vec<Value>);
+pub type NativeFn = fn(&mut Vec<Value>) -> Value;
 
 #[derive(Clone, Copy, Debug, Error)]
 pub enum FromBytesError {

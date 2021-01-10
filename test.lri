@@ -4,6 +4,11 @@ fn main() {
     g(1);
     print("Hooray!");
 
+    let x = 4;
+    print(x);
+    x = 8 * x;
+    print(x);
+
     if 2 + 2 == 4 {
         print("math works!");
     } else {
