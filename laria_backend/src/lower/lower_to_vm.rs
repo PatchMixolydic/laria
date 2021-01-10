@@ -9,8 +9,8 @@ use std::{collections::HashMap, convert::TryInto, ops::Range};
 use crate::{
     lexer::token::LiteralKind,
     parser::ast::{
-        BinaryOperator, Expression, ExpressionKind, Function, Script, Statement, StatementKind,
-        UnaryOperator,
+        BinaryOperator, Block, Expression, ExpressionKind, Function, Script, Statement,
+        StatementKind, UnaryOperator,
     },
 };
 
@@ -327,28 +327,31 @@ impl Lower {
                 otherwise,
             } => {
                 self.lower_expression(*cond);
-
-                // This may end up being the else target in reality,
-                // but for now this is a good guess.
-                let mut exit_target_range = self.emit_temp_jump_target(Instruction::CondBranch);
+                let mut else_target_range = self.emit_temp_jump_target(Instruction::CondBranch);
 
                 // If `cond` is false, execution will jump ahead;
                 // otherwise, it continues on. Because of this,
                 // the `then` block is lowered first.
                 self.lower_expression(then.into());
+                let exit_target_range = self.emit_temp_jump_target(Instruction::Jump);
 
-                if let Some(otherwise_block) = otherwise {
-                    // We have an else block. The "exit target range" we created
-                    // is actually an else target range. Give it a better name and
-                    // generate the correct exit target range.
-                    let else_target_range = exit_target_range;
-                    exit_target_range = self.emit_temp_jump_target(Instruction::Jump);
+                let otherwise_block = match otherwise {
+                    Some(res) => res,
 
-                    // The else jump target is now one after the end of self.instructions.
-                    // Now we can set the jump target for if the condition is false.
-                    self.patch_real_jump_target(else_target_range, self.instructions.len());
-                    self.lower_expression(otherwise_block.into());
-                }
+                    None => {
+                        // There is no otherwise block,
+                        // but we must return a value even if
+                        // the condition is false. Generate a
+                        // synthetic empty else block which will
+                        // return `()`.
+                        Block::new()
+                    },
+                };
+
+                // The else jump target is now one after the end of self.instructions.
+                // Now we can set the jump target for if the condition is false.
+                self.patch_real_jump_target(else_target_range, self.instructions.len());
+                self.lower_expression(otherwise_block.into());
 
                 // Now we can set the exit jump target
                 self.patch_real_jump_target(exit_target_range, self.instructions.len());

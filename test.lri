@@ -37,6 +37,15 @@ fn main() {
 
     print("Cool!");
 
+    let x = if x == 32 {
+        100
+    } else {
+        0
+    };
+
+    print("Final score!");
+    print(x);
+
     if 1 == 1 {
         1
     } else {
