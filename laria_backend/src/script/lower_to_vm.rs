@@ -53,23 +53,11 @@ pub fn lower_script(script: Script) -> VMScript {
 fn lower_function(function: Function, vm_script: &mut BuildVMScript) {
     let start_address = vm_script.instructions.len();
 
-    for statement in function.body.contents {
-        lower_statement(statement, vm_script);
-    }
-
-    match function.body.return_expr {
-        Some(expr) => {
-            // Pushes the result of the return expression onto the stack
-            lower_expression(*expr, vm_script);
-        },
-
-        None => {
-            // Implicitly return ()
-            vm_script.instructions.push(Instruction::Push as u8);
-            vm_script.instructions.push(ValueKind::Unit as u8);
-        },
-    }
-
+    let body_expr = {
+        let span = function.body.span;
+        Expression::new(ExpressionKind::Block(function.body), span)
+    };
+    lower_expression(body_expr, vm_script);
     vm_script.instructions.push(Instruction::Return as u8);
 
     // TODO: handle this properly
@@ -347,12 +335,23 @@ fn lower_expression(expression: Expression, vm_script: &mut BuildVMScript) -> is
         ExpressionKind::While(_, _) => todo!("while"),
 
         ExpressionKind::Block(block) => {
-            // TODO: do this properly
             for statement in block.contents {
                 lower_statement(statement, vm_script);
             }
 
-            0
+            match block.return_expr {
+                Some(expr) => {
+                    lower_expression(*expr, vm_script);
+                },
+
+                None => {
+                    // Implicitly return unit
+                    vm_script.instructions.push(Instruction::Push as u8);
+                    vm_script.instructions.push(ValueKind::Unit as u8);
+                },
+            }
+
+            1
         },
 
         ExpressionKind::PartialApp(_, _) => todo!("partial app"),
