@@ -147,13 +147,13 @@ fn lex_comment() {
 }
 
 proptest! {
-    // Inspired by proptest's README
+    /// Inspired by proptest's README
     #[test]
     fn fuzz(src in ".{0,4096}") {
         let _ = lex(&src);
     }
 
-    // Tries filling a string with random characters (except for \ and ^)
+    /// Tries filling a string with random characters (except for \ and ")
     #[test]
     fn string_stress(src in "\"[^\\\\\"]{0,4096}\"") {
         let mut res = lex(&src).expect("Expected a successful lex").into_iter();
