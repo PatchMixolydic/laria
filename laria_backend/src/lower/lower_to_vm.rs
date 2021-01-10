@@ -83,17 +83,8 @@ impl Lower {
     fn lower_statement(&mut self, statement: Statement) {
         match statement.kind {
             StatementKind::Expression(expr) => {
-                let stack_delta = self.lower_expression(expr);
-                assert!(stack_delta == 0 || stack_delta == 1);
-
-                // Expression statements should have no effect
-                if stack_delta > 0 {
-                    // Remove anything pushed to the stack
-                    for _ in 0..stack_delta {
-                        // TODO: `pop x` instruction?
-                        self.instructions.push(Instruction::Pop as u8);
-                    }
-                }
+                self.lower_expression(expr);
+                self.instructions.push(Instruction::Pop as u8);
             },
 
             StatementKind::Declaration((name, ty), rhs) => {
@@ -195,9 +186,7 @@ impl Lower {
     }
 
     /// Lowers an expression to bytecode.
-    /// Returns the change in the number of elements on the stack due to this
-    /// expression.
-    fn lower_expression(&mut self, expression: Expression) -> isize {
+    fn lower_expression(&mut self, expression: Expression) {
         match expression.kind {
             ExpressionKind::Literal(kind) => {
                 self.instructions.push(Instruction::Push as u8);
@@ -215,7 +204,6 @@ impl Lower {
                         .into_bytes()
                         .expect("Couldn't convert literal to bytes"),
                 );
-                1
             },
 
             ExpressionKind::BinaryOperation(lhs, BinaryOperator::Assign, rhs) => {
@@ -245,12 +233,11 @@ impl Lower {
                 // Assignments return unit
                 self.instructions.push(Instruction::Push as u8);
                 self.instructions.push(ValueKind::Unit as u8);
-                1
             },
 
             ExpressionKind::BinaryOperation(lhs, op, rhs) => {
-                let lhs_delta = self.lower_expression(*lhs);
-                let rhs_delta = self.lower_expression(*rhs);
+                self.lower_expression(*lhs);
+                self.lower_expression(*rhs);
 
                 match op {
                     BinaryOperator::Add => self.instructions.push(Instruction::Add as u8),
@@ -296,21 +283,15 @@ impl Lower {
                     // Handled above
                     BinaryOperator::Assign => unreachable!(),
                 }
-
-                // Left + right - 2 popped + 1 pushed
-                // TODO: this will probably not be the same for all binary operations
-                lhs_delta + rhs_delta - 1
             },
 
             ExpressionKind::UnaryOperation(op, expr) => {
-                let expr_delta = self.lower_expression(*expr);
+                self.lower_expression(*expr);
 
                 match op {
                     UnaryOperator::Negative => self.instructions.push(Instruction::Negate as u8),
                     UnaryOperator::Not => self.instructions.push(Instruction::Not as u8),
                 }
-
-                expr_delta
             },
 
             ExpressionKind::FnCall(maybe_fn_name, args) => {
@@ -327,21 +308,19 @@ impl Lower {
                 self.instructions.extend_from_slice(&name_bytes);
                 self.instructions.push(Instruction::GetGlobal as u8);
 
-                let mut args_stack_delta = 0;
                 let arity: u8 = args.len().try_into().expect("too many fn args");
+
                 for arg in args {
-                    args_stack_delta += self.lower_expression(arg);
+                    self.lower_expression(arg);
                 }
 
                 self.instructions.push(Instruction::JumpSubroutine as u8);
                 self.instructions.push(arity);
 
-                for _ in 0..args_stack_delta {
+                for _ in 0..arity {
                     // TODO: PopN
                     self.instructions.push(Instruction::Pop as u8);
                 }
-
-                1
             },
 
             ExpressionKind::If {
@@ -375,8 +354,6 @@ impl Lower {
 
                 // Now we can set the exit jump target
                 self.patch_real_jump_target(exit_target_range, self.instructions.len());
-
-                1
             },
 
             ExpressionKind::Loop(_, _) => todo!("loop"),
@@ -406,8 +383,6 @@ impl Lower {
                 // Exiting the scope; truncate the locals stack
                 // to get rid of this scope's local variables
                 self.locals_stack.truncate(locals_stack_len);
-
-                1
             },
 
             ExpressionKind::PartialApp(_, _) => todo!("partial app"),
@@ -420,11 +395,12 @@ impl Lower {
                 } else {
                     self.emit_variable_not_found(&id);
                 }
-
-                1
             },
 
-            ExpressionKind::Empty => 0,
+            ExpressionKind::Empty => {
+                self.instructions.push(Instruction::Push as u8);
+                self.instructions.push(ValueKind::Unit as u8);
+            },
         }
     }
 }
