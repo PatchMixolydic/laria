@@ -53,11 +53,7 @@ pub fn lower_script(script: Script) -> VMScript {
 fn lower_function(function: Function, vm_script: &mut BuildVMScript) {
     let start_address = vm_script.instructions.len();
 
-    let body_expr = {
-        let span = function.body.span;
-        Expression::new(ExpressionKind::Block(function.body), span)
-    };
-    lower_expression(body_expr, vm_script);
+    lower_expression(function.body.into(), vm_script);
     vm_script.instructions.push(Instruction::Return as u8);
 
     // TODO: handle this properly
@@ -300,13 +296,9 @@ fn lower_expression(expression: Expression, vm_script: &mut BuildVMScript) -> is
             // If `cond` is false, execution will jump ahead;
             // otherwise, it continues on. Because of this,
             // the `then` block is lowered first.
-            let then_expr = {
-                let then_span = then.span;
-                Expression::new(ExpressionKind::Block(then), then_span)
-            };
-            lower_expression(then_expr, vm_script);
+            lower_expression(then.into(), vm_script);
 
-            if let Some(else_block) = otherwise {
+            if let Some(otherwise_block) = otherwise {
                 // We have an else block. The "exit target range" we created
                 // is actually an else target range. Give it a better name and
                 // generate the correct exit target range.
@@ -317,11 +309,7 @@ fn lower_expression(expression: Expression, vm_script: &mut BuildVMScript) -> is
                 // Now we can set the jump target for if the condition is false.
                 patch_real_jump_target(else_target_range, vm_script.instructions.len(), vm_script);
 
-                let else_expr = {
-                    let else_span = else_block.span;
-                    Expression::new(ExpressionKind::Block(else_block), else_span)
-                };
-                lower_expression(else_expr, vm_script);
+                lower_expression(otherwise_block.into(), vm_script);
             }
 
             // Now we can set the exit jump target

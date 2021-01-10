@@ -282,10 +282,7 @@ impl<'src> Parser<'src> {
                 // This is (probably) a return expression
                 Ok(StatementOrExpr::Expression(block_like))
             } else {
-                Ok(StatementOrExpr::Statement(Statement::new(
-                    StatementKind::Expression(block_like),
-                    span,
-                )))
+                Ok(StatementOrExpr::Statement(block_like.into()))
             }
         } else {
             let expr = self.parse_expression(
@@ -302,10 +299,7 @@ impl<'src> Parser<'src> {
                 let semicolon = self.expect_item(Expected::Symbol(Symbol::Semicolon))?;
                 span.grow_to_contain(&semicolon.span);
 
-                Ok(StatementOrExpr::Statement(Statement::new(
-                    StatementKind::Expression(expr),
-                    span,
-                )))
+                Ok(StatementOrExpr::Statement(expr.into()))
             } else if self.check_next(Expected::CloseDelim(DelimKind::Brace)) {
                 Ok(StatementOrExpr::Expression(expr))
             } else {
@@ -513,12 +507,7 @@ impl<'src> Parser<'src> {
     fn parse_block_like_expr(&mut self) -> Result<Expression, ParseError> {
         if self.check_next(Expected::OpenDelim(DelimKind::Brace)) {
             let block = self.parse_block()?;
-            let span = block.span;
-
-            Ok(Expression {
-                kind: ExpressionKind::Block(block),
-                span,
-            })
+            Ok(block.into())
         } else if self.check_next(Expected::Keyword(Keyword::If)) {
             self.parse_if_expr()
         } else if self.check_next(Expected::Keyword(Keyword::For)) {

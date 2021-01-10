@@ -116,6 +116,17 @@ impl Statement {
     }
 }
 
+impl From<Expression> for Statement {
+    fn from(expression: Expression) -> Self {
+        let span = expression.span;
+
+        Self {
+            kind: StatementKind::Expression(expression),
+            span,
+        }
+    }
+}
+
 impl fmt::Display for Statement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.kind {
@@ -265,6 +276,17 @@ pub struct Expression {
 impl Expression {
     pub const fn new(kind: ExpressionKind, span: Span) -> Self {
         Self { kind, span }
+    }
+}
+
+impl From<Block> for Expression {
+    fn from(block: Block) -> Self {
+        let span = block.span;
+
+        Self {
+            kind: ExpressionKind::Block(block),
+            span,
+        }
     }
 }
 
