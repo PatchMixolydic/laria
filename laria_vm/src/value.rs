@@ -251,7 +251,7 @@ impl fmt::Debug for Value {
 
             Value::Float(x) => f.debug_tuple("Float").field(x).finish(),
             Value::Integer(x) => f.debug_tuple("Integer").field(x).finish(),
-            Value::UnsignedInt(x) => f.debug_tuple("Integer").field(x).finish(),
+            Value::UnsignedInt(x) => f.debug_tuple("UnsignedInt").field(x).finish(),
             Value::String(ref s) => f.debug_tuple("String").field(s).finish(),
             Value::Unit => write!(f, "Unit"),
             Value::Byte(b) => f.debug_tuple("Byte").field(b).finish(),
