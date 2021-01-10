@@ -274,13 +274,19 @@ impl<'src> Parser<'src> {
                 self.parse_variable_declaration()?,
             ))
         } else if self.check_block_like_expr_next() {
-            let stmt = self.parse_block_like_expr()?;
-            let span = stmt.span;
+            let block_like = self.parse_block_like_expr()?;
+            let span = block_like.span;
 
-            Ok(StatementOrExpr::Statement(Statement::new(
-                StatementKind::Expression(stmt),
-                span,
-            )))
+            // TODO: seems a bit odd to check for this here
+            if self.check_next(Expected::CloseDelim(DelimKind::Brace)) {
+                // This is (probably) a return expression
+                Ok(StatementOrExpr::Expression(block_like))
+            } else {
+                Ok(StatementOrExpr::Statement(Statement::new(
+                    StatementKind::Expression(block_like),
+                    span,
+                )))
+            }
         } else {
             let expr = self.parse_expression(
                 &[
