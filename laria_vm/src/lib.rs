@@ -21,7 +21,6 @@ bitflags! {
         const OVERFLOW = 0b0000_0010;
         const ZERO = 0b0000_0100;
         const NEGATIVE = 0b0000_1000;
-        const COMPARISON = 0b0001_0000;
     }
 }
 

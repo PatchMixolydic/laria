@@ -43,6 +43,8 @@ pub enum LiteralKind {
     String(String),
     /// ex. `1.5`
     Float(f64),
+    /// ex. `true`, `false`
+    Boolean(bool),
 }
 
 impl fmt::Display for LiteralKind {
@@ -51,6 +53,7 @@ impl fmt::Display for LiteralKind {
             Self::Integer(i) => write!(f, "{}", i),
             Self::String(ref s) => write!(f, "\"{}\"", s),
             Self::Float(inner) => write!(f, "{:?}", inner),
+            Self::Boolean(b) => write!(f, "{}", b),
         }
     }
 }

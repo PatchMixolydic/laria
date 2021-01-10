@@ -143,6 +143,7 @@ fn lower_expression(expression: Expression, vm_script: &mut BuildVMScript) -> is
                 LiteralKind::Integer(i) => Value::Integer(i),
                 LiteralKind::String(s) => Value::String(s),
                 LiteralKind::Float(f) => Value::Float(f),
+                LiteralKind::Boolean(b) => Value::Byte(b as u8),
             };
 
             // TODO: handle this properly
@@ -164,48 +165,22 @@ fn lower_expression(expression: Expression, vm_script: &mut BuildVMScript) -> is
                 BinaryOperator::Multiply => vm_script.instructions.push(Instruction::Mul as u8),
                 BinaryOperator::Divide => vm_script.instructions.push(Instruction::Div as u8),
 
-                BinaryOperator::Equal => {
-                    vm_script.instructions.push(Instruction::TestEq as u8);
-                    vm_script
-                        .instructions
-                        .push(Instruction::PushComparison as u8);
-                },
+                BinaryOperator::Equal => vm_script.instructions.push(Instruction::Eq as u8),
 
-                BinaryOperator::NotEqual => {
-                    vm_script.instructions.push(Instruction::TestNotEq as u8);
-                    vm_script
-                        .instructions
-                        .push(Instruction::PushComparison as u8);
-                },
+                BinaryOperator::NotEqual => vm_script.instructions.push(Instruction::NotEq as u8),
 
                 BinaryOperator::GreaterThan => {
-                    vm_script.instructions.push(Instruction::TestGreater as u8);
-                    vm_script
-                        .instructions
-                        .push(Instruction::PushComparison as u8);
+                    vm_script.instructions.push(Instruction::Greater as u8)
                 },
 
-                BinaryOperator::LessThan => {
-                    vm_script.instructions.push(Instruction::TestLess as u8);
-                    vm_script
-                        .instructions
-                        .push(Instruction::PushComparison as u8);
-                },
+                BinaryOperator::LessThan => vm_script.instructions.push(Instruction::Less as u8),
 
                 BinaryOperator::GreaterThanEqual => {
-                    vm_script
-                        .instructions
-                        .push(Instruction::TestGreaterEq as u8);
-                    vm_script
-                        .instructions
-                        .push(Instruction::PushComparison as u8);
+                    vm_script.instructions.push(Instruction::GreaterEq as u8)
                 },
 
                 BinaryOperator::LessThanEqual => {
-                    vm_script.instructions.push(Instruction::TestLessEq as u8);
-                    vm_script
-                        .instructions
-                        .push(Instruction::PushComparison as u8);
+                    vm_script.instructions.push(Instruction::LessEq as u8)
                 },
 
                 BinaryOperator::BoolAnd | BinaryOperator::BitAnd => {
@@ -283,11 +258,6 @@ fn lower_expression(expression: Expression, vm_script: &mut BuildVMScript) -> is
             otherwise,
         } => {
             lower_expression(*cond, vm_script);
-
-            if vm_script.instructions.last().copied() == Some(Instruction::PushComparison as u8) {
-                // We don't need this; we have CondBranch!
-                vm_script.instructions.pop();
-            }
 
             // This may end up being the else target in reality,
             // but for now this is a good guess.

@@ -107,7 +107,7 @@ impl<'src> Lexer<'src> {
         let span_c = Span::new(idx, 1);
 
         match c {
-            'A'..='Z' | 'a'..='z' | '_' => Ok(Some(self.consume_ident())),
+            'A'..='Z' | 'a'..='z' | '_' => Ok(Some(self.consume_ident_or_keyword())),
             '0'..='9' => Ok(Some(self.consume_number()?)),
             '"' => Ok(Some(self.consume_string()?)),
 
@@ -216,7 +216,7 @@ impl<'src> Lexer<'src> {
 
     /// Take every character that could be considered part of an identifier
     /// and produce an `IdentOrKeyword` token.
-    fn consume_ident(&mut self) -> Token {
+    fn consume_ident_or_keyword(&mut self) -> Token {
         let mut res = String::new();
         let start = self.chars.peek().unwrap().0;
 
@@ -232,7 +232,13 @@ impl<'src> Lexer<'src> {
         }
 
         let span = Span::new(start, res.len());
-        Token::new(TokenKind::IdentOrKeyword(res), span)
+
+        // TODO: not sure if this is a good place for this...
+        match res.as_str() {
+            "true" => Token::new(TokenKind::Literal(LiteralKind::Boolean(true)), span),
+            "false" => Token::new(TokenKind::Literal(LiteralKind::Boolean(false)), span),
+            _ => Token::new(TokenKind::IdentOrKeyword(res), span),
+        }
     }
 
     /// Take every character that could be considered part of a number

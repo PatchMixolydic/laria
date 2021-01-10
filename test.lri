@@ -15,18 +15,18 @@ fn main() {
     if 2 + 2 == 5 {
         print("that's wrong!");
     } else {
-        print("excluded middles abound!");
+        print("four is not five!");
     }
 
     print("jmp for joy!");
 
-    if 1 == 1 {
+    if true {
         print("true is true!");
     }
 
     print("what about false?");
 
-    if 0 == 1 {
+    if false {
         print("false is true?");
     }
 

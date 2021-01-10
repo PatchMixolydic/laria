@@ -21,15 +21,13 @@ pub enum Instruction {
     ArithmeticShiftRight,
     RotateLeft,
     RotateRight,
-    TestGreater,
-    TestLess,
-    TestGreaterEq,
-    TestLessEq,
-    TestEq,
-    TestNotEq,
-    TestOverflow,
-    /// Pushes the value of the comparison flag onto the stack.
-    PushComparison,
+    Greater,
+    Less,
+    GreaterEq,
+    LessEq,
+    Eq,
+    NotEq,
+    PushOverflow,
     /// Branches to a target address
     /// if the `COMPARISON` flag is clear.
     /// Branching when `COMPARISON` is clear is
@@ -38,9 +36,10 @@ pub enum Instruction {
     CondBranch,
     /// Jumps unconditionally to a target address.
     Jump,
-    /// Branches to a target function
-    /// if the `COMPARISON` flag is clear.
-    /// Sets up a stack frame for the `Return` instruction.
+    /// Jumps unconditionally to a target function.
+    /// Takes the number of arguments the target function
+    /// takes as an argument. Sets up a stack frame for the `Return`
+    /// instruction.
     ///
     /// This instruction takes the number of arguments the function takes
     /// as an argument. This may seem strange: since subroutines
@@ -51,15 +50,6 @@ pub enum Instruction {
     /// * Backtraces become easier to generate
     /// * Tail call optimization can be implemented by reading the start address
     ///   from the function on the stack.
-    CondBranchSub,
-    /// Jumps unconditionally to a target function.
-    /// Takes the number of arguments the target function
-    /// takes as an argument. See [`CondBranchSub`] for the reason
-    /// behind this.
-    /// Sets up a stack frame for the `Return`
-    /// instruction.
-    ///
-    /// [`CondBranchSub`]: Instruction::CondBranchSub
     JumpSubroutine,
     /// Return from a subroutine.
     /// If the stack is empty, this halts the VM.

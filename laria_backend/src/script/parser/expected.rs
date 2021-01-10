@@ -10,6 +10,7 @@ pub(super) enum ExpectLiteral {
     String,
     Integer,
     Float,
+    Boolean,
 }
 
 impl fmt::Display for ExpectLiteral {
@@ -19,6 +20,7 @@ impl fmt::Display for ExpectLiteral {
             ExpectLiteral::String => write!(f, "string"),
             ExpectLiteral::Integer => write!(f, "integer"),
             ExpectLiteral::Float => write!(f, "float"),
+            ExpectLiteral::Boolean => write!(f, "boolean"),
         }
     }
 }
@@ -62,6 +64,13 @@ impl Expected {
                 matches!(
                     self,
                     Self::Literal(ExpectLiteral::Any | ExpectLiteral::Float)
+                )
+            },
+
+            TokenKind::Literal(LiteralKind::Boolean(_)) => {
+                matches!(
+                    self,
+                    Self::Literal(ExpectLiteral::Any | ExpectLiteral::Boolean)
                 )
             },
 

@@ -36,6 +36,7 @@ pub enum ValueKind {
     Float,
     String,
     Unit,
+    Byte,
 }
 
 impl fmt::Display for ValueKind {
@@ -48,6 +49,7 @@ impl fmt::Display for ValueKind {
             ValueKind::Float => write!(f, "float"),
             ValueKind::String => write!(f, "string"),
             ValueKind::Unit => write!(f, "unit"),
+            ValueKind::Byte => write!(f, "byte"),
         }
     }
 }
@@ -61,6 +63,7 @@ pub enum Value {
     Float(f64),
     String(String),
     Unit,
+    Byte(u8),
 }
 
 impl Value {
@@ -162,6 +165,17 @@ impl Value {
             },
 
             ValueKind::Unit => Ok((Value::Unit, 1)),
+
+            ValueKind::Byte => {
+                if bytes.len() < 2 {
+                    return Err(FromBytesError::NotEnoughBytes {
+                        expected: 2,
+                        actual: 1,
+                    });
+                }
+
+                Ok((Value::Byte(bytes[1]), 2))
+            },
         }
     }
 
@@ -203,6 +217,11 @@ impl Value {
             },
 
             Value::Unit => Ok(res),
+
+            Value::Byte(b) => {
+                res.push(b);
+                Ok(res)
+            },
         }
     }
 
@@ -215,6 +234,7 @@ impl Value {
             Value::Float(_) => ValueKind::Float,
             Value::String(_) => ValueKind::String,
             Value::Unit => ValueKind::Unit,
+            Value::Byte(_) => ValueKind::Byte,
         }
     }
 }
@@ -222,17 +242,19 @@ impl Value {
 impl fmt::Debug for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Value::Float(x) => f.debug_tuple("Float").field(x).finish(),
-            Value::Integer(x) => f.debug_tuple("Integer").field(x).finish(),
-            Value::UnsignedInt(x) => f.debug_tuple("Integer").field(x).finish(),
-            Value::String(ref s) => f.debug_tuple("String").field(s).finish(),
-            Value::Unit => write!(f, "Unit"),
             Value::Subroutine(ref sub) => f.debug_tuple("Subroutine").field(sub).finish(),
 
             Value::NativeFn(func) => f
                 .debug_tuple("NativeFn")
                 .field(&(func as *const _))
                 .finish(),
+
+            Value::Float(x) => f.debug_tuple("Float").field(x).finish(),
+            Value::Integer(x) => f.debug_tuple("Integer").field(x).finish(),
+            Value::UnsignedInt(x) => f.debug_tuple("Integer").field(x).finish(),
+            Value::String(ref s) => f.debug_tuple("String").field(s).finish(),
+            Value::Unit => write!(f, "Unit"),
+            Value::Byte(b) => f.debug_tuple("Byte").field(b).finish(),
         }
     }
 }
@@ -240,13 +262,14 @@ impl fmt::Debug for Value {
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Value::Subroutine(ref sub) => write!(f, "subroutine `{}`", sub.name()),
+            Value::NativeFn(func) => write!(f, "native fn at {:#x}", func as *const _ as usize),
             Value::Float(x) => write!(f, "{}", x),
             Value::Integer(x) => write!(f, "{}", x),
             Value::UnsignedInt(x) => write!(f, "{}", x),
             Value::String(ref s) => write!(f, "{}", s),
             Value::Unit => write!(f, "()"),
-            Value::Subroutine(ref sub) => write!(f, "subroutine `{}`", sub.name()),
-            Value::NativeFn(func) => write!(f, "native fn at {:#x}", func as *const _ as usize),
+            Value::Byte(b) => write!(f, "{}", b),
         }
     }
 }

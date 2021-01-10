@@ -402,17 +402,17 @@ impl VM {
                 (_, _) => return Err(VMError::WrongType)
             }),
 
-            Instruction::TestGreater => two_arg!((x, y) => match (x, y) {
+            Instruction::Greater => two_arg!((x, y) => match (x, y) {
                 (Value::Integer(x), Value::Integer(y)) => {
-                    self.flags.set(Flags::COMPARISON, x > y);
+                    self.stack.push(Value::Byte((x > y) as u8));
                 },
 
                 (Value::UnsignedInt(x), Value::UnsignedInt(y)) => {
-                    self.flags.set(Flags::COMPARISON, x > y);
+                    self.stack.push(Value::Byte((x > y) as u8));
                 },
 
                 (Value::Float(x), Value::Float(y)) => {
-                    self.flags.set(Flags::COMPARISON, x > y);
+                    self.stack.push(Value::Byte((x > y) as u8));
                 },
 
                 (Value::Integer(_) | Value::UnsignedInt(_) | Value::Float(_), _) => {
@@ -422,17 +422,17 @@ impl VM {
                 (_, _) => return Err(VMError::WrongType)
             }),
 
-            Instruction::TestLess => two_arg!((x, y) => match (x, y) {
+            Instruction::Less => two_arg!((x, y) => match (x, y) {
                 (Value::Integer(x), Value::Integer(y)) => {
-                    self.flags.set(Flags::COMPARISON, x < y);
+                    self.stack.push(Value::Byte((x < y) as u8));
                 },
 
                 (Value::UnsignedInt(x), Value::UnsignedInt(y)) => {
-                    self.flags.set(Flags::COMPARISON, x < y);
+                    self.stack.push(Value::Byte((x < y) as u8));
                 },
 
                 (Value::Float(x), Value::Float(y)) => {
-                    self.flags.set(Flags::COMPARISON, x < y);
+                    self.stack.push(Value::Byte((x < y) as u8));
                 },
 
                 (Value::Integer(_) | Value::UnsignedInt(_) | Value::Float(_), _) => {
@@ -442,17 +442,17 @@ impl VM {
                 (_, _) => return Err(VMError::WrongType)
             }),
 
-            Instruction::TestGreaterEq => two_arg!((x, y) => match (x, y) {
+            Instruction::GreaterEq => two_arg!((x, y) => match (x, y) {
                 (Value::Integer(x), Value::Integer(y)) => {
-                    self.flags.set(Flags::COMPARISON, x >= y);
+                    self.stack.push(Value::Byte((x >= y) as u8));
                 },
 
                 (Value::UnsignedInt(x), Value::UnsignedInt(y)) => {
-                    self.flags.set(Flags::COMPARISON, x >= y);
+                    self.stack.push(Value::Byte((x >= y) as u8));
                 },
 
                 (Value::Float(x), Value::Float(y)) => {
-                    self.flags.set(Flags::COMPARISON, x >= y);
+                    self.stack.push(Value::Byte((x >= y) as u8));
                 },
 
                 (Value::Integer(_) | Value::UnsignedInt(_) | Value::Float(_), _) => {
@@ -462,17 +462,17 @@ impl VM {
                 (_, _) => return Err(VMError::WrongType)
             }),
 
-            Instruction::TestLessEq => two_arg!((x, y) => match (x, y) {
+            Instruction::LessEq => two_arg!((x, y) => match (x, y) {
                 (Value::Integer(x), Value::Integer(y)) => {
-                    self.flags.set(Flags::COMPARISON, x <= y);
+                    self.stack.push(Value::Byte((x <= y) as u8));
                 },
 
                 (Value::UnsignedInt(x), Value::UnsignedInt(y)) => {
-                    self.flags.set(Flags::COMPARISON, x <= y);
+                    self.stack.push(Value::Byte((x <= y) as u8));
                 },
 
                 (Value::Float(x), Value::Float(y)) => {
-                    self.flags.set(Flags::COMPARISON, x <= y);
+                    self.stack.push(Value::Byte((x <= y) as u8));
                 },
 
                 (Value::Integer(_) | Value::UnsignedInt(_) | Value::Float(_), _) => {
@@ -482,13 +482,13 @@ impl VM {
                 (_, _) => return Err(VMError::WrongType)
             }),
 
-            Instruction::TestEq => two_arg!((x, y) => match (x, y) {
+            Instruction::Eq => two_arg!((x, y) => match (x, y) {
                 (Value::Integer(x), Value::Integer(y)) => {
-                    self.flags.set(Flags::COMPARISON, x == y);
+                    self.stack.push(Value::Byte((x == y) as u8));
                 },
 
                 (Value::UnsignedInt(x), Value::UnsignedInt(y)) => {
-                    self.flags.set(Flags::COMPARISON, x == y);
+                    self.stack.push(Value::Byte((x == y) as u8));
                 },
 
                 (Value::Float(x), Value::Float(y)) => {
@@ -496,7 +496,7 @@ impl VM {
                     // less strict equality checking should be implemented
                     // in the standard library if needed
                     #[allow(clippy::float_cmp)]
-                    self.flags.set(Flags::COMPARISON, x == y);
+                    self.stack.push(Value::Byte((x == y) as u8));
                 },
 
                 (Value::Integer(_) | Value::UnsignedInt(_) | Value::Float(_), _) => {
@@ -506,13 +506,13 @@ impl VM {
                 (_, _) => return Err(VMError::WrongType)
             }),
 
-            Instruction::TestNotEq => two_arg!((x, y) => match (x, y) {
+            Instruction::NotEq => two_arg!((x, y) => match (x, y) {
                 (Value::Integer(x), Value::Integer(y)) => {
-                    self.flags.set(Flags::COMPARISON, x != y);
+                    self.stack.push(Value::Byte((x != y) as u8));
                 },
 
                 (Value::UnsignedInt(x), Value::UnsignedInt(y)) => {
-                    self.flags.set(Flags::COMPARISON, x != y);
+                    self.stack.push(Value::Byte((x != y) as u8));
                 },
 
                 (Value::Float(x), Value::Float(y)) => {
@@ -520,7 +520,7 @@ impl VM {
                     // less strict equality checking should be implemented
                     // in the standard library if needed
                     #[allow(clippy::float_cmp)]
-                    self.flags.set(Flags::COMPARISON, x != y);
+                    self.stack.push(Value::Byte((x != y) as u8));
                 },
 
                 (Value::Integer(_) | Value::UnsignedInt(_) | Value::Float(_), _) => {
@@ -530,23 +530,26 @@ impl VM {
                 (_, _) => return Err(VMError::WrongType)
             }),
 
-            Instruction::TestOverflow => self
-                .flags
-                .set(Flags::COMPARISON, self.flags.contains(Flags::OVERFLOW)),
-
-            Instruction::PushComparison => {
-                let res = Value::Integer(self.flags.contains(Flags::COMPARISON) as i64);
-                self.stack.push(res)
+            Instruction::PushOverflow => {
+                self.stack
+                    .push(Value::Byte(self.flags.contains(Flags::OVERFLOW) as u8));
             },
 
-            Instruction::CondBranch => one_arg!(maybe_address => {
+            Instruction::CondBranch => two_arg!((condition, maybe_address) => {
                 let address = match maybe_address {
                     Value::UnsignedInt(res) => res as usize,
                     _ => return Err(VMError::WrongType)
                 };
 
-                if !self.flags.contains(Flags::COMPARISON) {
-                    self.program_counter = address;
+                match condition {
+                    Value::Byte(b) => {
+                        // CondBranch jumps on false
+                        if b == 0 {
+                            self.program_counter = address;
+                        }
+                    }
+
+                    _ => return Err(VMError::WrongType)
                 }
             }),
 
@@ -558,12 +561,6 @@ impl VM {
 
                 self.program_counter = address;
             }),
-
-            Instruction::CondBranchSub => {
-                if !self.flags.contains(Flags::COMPARISON) {
-                    self.call()?
-                }
-            },
 
             Instruction::JumpSubroutine => self.call()?,
 
