@@ -356,9 +356,20 @@ impl Lower {
                 self.patch_real_jump_target(exit_target_range, self.instructions.len());
             },
 
-            ExpressionKind::Loop(_, _) => todo!("loop"),
+            ExpressionKind::Loop(None, body) => {
+                let loop_target_bytes = Value::UnsignedInt(self.instructions.len() as u64)
+                    .into_bytes()
+                    .expect("Couldn't convert loop jump target to bytes");
 
-            ExpressionKind::While(_, _) => todo!("while"),
+                self.lower_expression(body.into());
+                self.instructions.push(Instruction::Push as u8);
+                self.instructions.extend_from_slice(&loop_target_bytes);
+                self.instructions.push(Instruction::Jump as u8);
+            },
+
+            ExpressionKind::Loop(Some(num_loops), body) => todo!("loop ctr"),
+
+            ExpressionKind::While(condition, body) => todo!("while"),
 
             ExpressionKind::Block(block) => {
                 // This is a new scope; store the length of the locals stack
