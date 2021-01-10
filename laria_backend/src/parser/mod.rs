@@ -1,3 +1,4 @@
+pub(crate) mod ast;
 mod expected;
 mod keyword;
 
@@ -8,14 +9,14 @@ use std::{collections::HashSet, convert::TryFrom, iter::Peekable, vec};
 use thiserror::Error;
 
 use self::{
+    ast::*,
     expected::{ExpectLiteral, Expected},
     keyword::Keyword,
 };
 use crate::{
     errors::{DiagnosticsContext, Span},
-    script::ast::*,
-    token::Symbol,
-    token::{DelimKind, Token, TokenKind},
+    lexer::token::Symbol,
+    lexer::token::{DelimKind, Token, TokenKind},
 };
 
 #[derive(Debug, Error)]

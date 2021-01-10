@@ -6,11 +6,13 @@ use laria_vm::{
 };
 use std::{collections::HashMap, convert::TryInto, ops::Range};
 
-use super::ast::{
-    BinaryOperator, Expression, ExpressionKind, Function, Script, Statement, StatementKind,
-    UnaryOperator,
+use crate::{
+    lexer::token::LiteralKind,
+    parser::ast::{
+        BinaryOperator, Expression, ExpressionKind, Function, Script, Statement, StatementKind,
+        UnaryOperator,
+    },
 };
-use crate::token::LiteralKind;
 
 // TODO: a lot of this can probably be shared with the future
 // `lower_to_bytecode`
@@ -166,7 +168,6 @@ fn lower_expression(expression: Expression, vm_script: &mut BuildVMScript) -> is
                 BinaryOperator::Divide => vm_script.instructions.push(Instruction::Div as u8),
 
                 BinaryOperator::Equal => vm_script.instructions.push(Instruction::Eq as u8),
-
                 BinaryOperator::NotEqual => vm_script.instructions.push(Instruction::NotEq as u8),
 
                 BinaryOperator::GreaterThan => {

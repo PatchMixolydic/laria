@@ -1,7 +1,10 @@
 use proptest::prelude::*;
 
-use super::{lex, LexError};
-use crate::token::{DelimKind, LiteralKind, Symbol, TokenKind};
+use super::{
+    lex,
+    token::{DelimKind, LiteralKind, Symbol, TokenKind},
+    LexError,
+};
 
 macro_rules! assert_lex_result {
     ($_res:expr,) => {};

@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::{errors::Span, token::LiteralKind};
+use crate::{errors::Span, lexer::token::LiteralKind};
 
 #[derive(Clone, Debug)]
 pub struct Script {

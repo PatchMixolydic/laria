@@ -1,7 +1,7 @@
 use std::fmt;
 
 use super::keyword::Keyword;
-use crate::token::{DelimKind, LiteralKind, Symbol, TokenKind};
+use crate::lexer::token::{DelimKind, LiteralKind, Symbol, TokenKind};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub(super) enum ExpectLiteral {

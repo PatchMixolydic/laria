@@ -1,3 +1,5 @@
+pub(crate) mod token;
+
 #[cfg(test)]
 mod tests;
 
@@ -8,10 +10,8 @@ use std::{
 };
 use thiserror::Error;
 
-use crate::{
-    errors::{DiagnosticsContext, Span},
-    token::{DelimKind, LiteralKind, Symbol, Token, TokenKind},
-};
+use self::token::{DelimKind, LiteralKind, Symbol, Token, TokenKind};
+use crate::errors::{DiagnosticsContext, Span};
 
 type CharStream<'a> = Peekable<Enumerate<Chars<'a>>>;
 

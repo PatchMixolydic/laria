@@ -1,9 +1,9 @@
-use super::{keyword::Keyword, Expected, ParseError, Parser};
-use crate::{
-    lexer::lex,
-    script::ast::{BinaryOperator, ExpressionKind},
-    token::Symbol,
+use super::{
+    ast::{BinaryOperator, ExpressionKind},
+    keyword::Keyword,
+    Expected, ParseError, Parser,
 };
+use crate::lexer::{lex, token::Symbol};
 
 /// Lexes a source stream
 /// and creates a parser using the resulting tokens.

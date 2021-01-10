@@ -1,4 +1,4 @@
-use laria_backend::script;
+use laria_backend::{lex_and_parse, lower_to_vm};
 use laria_vm::vm::VM;
 use pico_args::Arguments;
 use rustc_version_runtime::version_meta;
@@ -96,7 +96,7 @@ fn main() {
             println!("Compiling {}...", source_file)
         }
 
-        let ast = script::lex_and_parse(source_path);
+        let ast = lex_and_parse(source_path);
         println!("{}", ast);
         todo!("lower to file");
     } else {
@@ -104,8 +104,8 @@ fn main() {
             println!("Interpreting {}...", source_file);
         }
 
-        let ast = script::lex_and_parse(source_path);
-        let script = script::lower_to_vm::lower_script(ast);
+        let ast = lex_and_parse(source_path);
+        let script = lower_to_vm::lower_script(ast);
         let mut vm = VM::new(script, args.verbose);
 
         loop {
