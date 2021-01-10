@@ -54,6 +54,11 @@ impl VM {
             };
         }
 
+        if self.trace_execution {
+            println!();
+            println!("VM::tick: stack {:#?}", self.stack);
+        }
+
         let opcode = match self.script.instructions.get(self.program_counter) {
             Some(res) => *res,
 
@@ -596,22 +601,13 @@ impl VM {
                 self.stack.push(self.get_global(name)?.clone());
             }),
 
-            Instruction::SetGlobal => one_arg!(maybe_name => {
+            Instruction::SetGlobal => two_arg!((value, maybe_name) => {
                 let name = match maybe_name {
                     Value::String(ref res) => res,
                     _ => return Err(VMError::WrongType)
                 };
 
-                match self.stack.pop() {
-                    Some(value) => {
-                        self.set_global(name, value);
-                    },
-
-                    None => return Err(VMError::NotEnoughValues {
-                        expected: 1,
-                        found: 0
-                    })
-                }
+                self.set_global(name, value);
             }),
 
             Instruction::GetLocal => one_arg!(maybe_index_offset => {
@@ -648,7 +644,7 @@ impl VM {
                 }
             }),
 
-            Instruction::SetLocal => two_arg!((maybe_index_offset, value) => {
+            Instruction::SetLocal => two_arg!((value, maybe_index_offset) => {
                 let index_offset = match maybe_index_offset {
                     Value::UnsignedInt(res) => res as usize,
                     _ => return Err(VMError::WrongType)

@@ -141,6 +141,59 @@ impl Lower {
         }
     }
 
+    /// Tries to resolve a local variable. If the lookup succeeds,
+    /// this function pushes the local variable index to the stack
+    /// and returns `true`. The stack is not modified if the lookup
+    /// fails.
+    fn try_resolve_local(&mut self, id: &str) -> bool {
+        for (i, name) in self.locals_stack.iter().enumerate().rev() {
+            if name == &id {
+                // Found a local
+                let local_idx_bytes = Value::UnsignedInt(i as u64)
+                    .into_bytes()
+                    .expect("Couldn't convert local variable index to bytes");
+
+                self.instructions.push(Instruction::Push as u8);
+                self.instructions.extend_from_slice(&local_idx_bytes);
+
+                return true;
+            }
+        }
+
+        false
+    }
+
+    /// Tries to resolve a global variable. If the lookup succeeds,
+    /// this function pushes the variable name to the stack
+    /// and returns `true`. The stack is not modified if the lookup
+    /// fails.
+    fn try_resolve_global(&mut self, id: &str) -> bool {
+        if self.globals.contains_key(id) {
+            // yup!
+            let id_bytes = Value::String(id.to_owned())
+                .into_bytes()
+                .expect("Couldn't convert identifier to bytes");
+
+            self.instructions.push(Instruction::Push as u8);
+            self.instructions.extend_from_slice(&id_bytes);
+
+            true
+        } else {
+            false
+        }
+    }
+
+    fn emit_variable_not_found(&self, id: &str) -> ! {
+        let mut locals_in_scope = self.locals_stack.clone();
+        locals_in_scope.sort();
+        locals_in_scope.dedup();
+
+        println!("variable `{}` not found in current scope", id);
+        println!("locals in scope: {:#?}", locals_in_scope);
+        println!("globals: {:#?}", self.globals);
+        todo!();
+    }
+
     /// Lowers an expression to bytecode.
     /// Returns the change in the number of elements on the stack due to this
     /// expression.
@@ -162,6 +215,36 @@ impl Lower {
                         .into_bytes()
                         .expect("Couldn't convert literal to bytes"),
                 );
+                1
+            },
+
+            ExpressionKind::BinaryOperation(lhs, BinaryOperator::Assign, rhs) => {
+                let id = match lhs.kind {
+                    ExpressionKind::Identifier(id) => id,
+
+                    _ => panic!("Invalid left hand side for assignment: {}", lhs),
+                };
+
+                // Lower the right hand side preemptively
+                self.lower_expression(*rhs);
+
+                if self.try_resolve_local(&id) {
+                    // Found a local variable
+                    self.instructions.push(Instruction::SetLocal as u8);
+                } else if self.try_resolve_global(&id) {
+                    // Found a global variable
+                    self.instructions.push(Instruction::SetGlobal as u8);
+                } else {
+                    // TODO: extern globals, globals defined after the current scope
+                    // TODO: how should constants be handled?
+
+                    // Not found!
+                    self.emit_variable_not_found(&id);
+                }
+
+                // Assignments return unit
+                self.instructions.push(Instruction::Push as u8);
+                self.instructions.push(ValueKind::Unit as u8);
                 1
             },
 
@@ -208,8 +291,10 @@ impl Lower {
                     },
 
                     BinaryOperator::ShiftRight => todo!("decide on shift right default"),
-                    BinaryOperator::Assign => todo!("assignment"),
                     BinaryOperator::As => todo!("as cast"),
+
+                    // Handled above
+                    BinaryOperator::Assign => unreachable!(),
                 }
 
                 // Left + right - 2 popped + 1 pushed
@@ -328,45 +413,13 @@ impl Lower {
             ExpressionKind::PartialApp(_, _) => todo!("partial app"),
 
             ExpressionKind::Identifier(id) => {
-                for (i, name) in self.locals_stack.iter().enumerate().rev() {
-                    if name == &id {
-                        // Found a local
-                        let local_idx_bytes = Value::UnsignedInt(i as u64)
-                            .into_bytes()
-                            .expect("Couldn't convert local variable index to bytes");
-
-                        self.instructions.push(Instruction::Push as u8);
-                        self.instructions.extend_from_slice(&local_idx_bytes);
-                        self.instructions.push(Instruction::GetLocal as u8);
-                        return 1;
-                    }
-                }
-
-                // Hmm... maybe it's a global?
-                if self.globals.contains_key(&id) {
-                    // yup!
-                    let id_bytes = Value::String(id)
-                        .into_bytes()
-                        .expect("Couldn't convert identifier to bytes");
-
-                    self.instructions.push(Instruction::Push as u8);
-                    self.instructions.extend_from_slice(&id_bytes);
+                if self.try_resolve_local(&id) {
+                    self.instructions.push(Instruction::GetLocal as u8);
+                } else if self.try_resolve_global(&id) {
                     self.instructions.push(Instruction::GetGlobal as u8);
-                    return 1;
+                } else {
+                    self.emit_variable_not_found(&id);
                 }
-
-                // TODO: extern globals, globals defined after the current scope
-                // TODO: how should constants be handled?
-
-                // Not found!
-                let mut locals_in_scope = self.locals_stack.clone();
-                locals_in_scope.sort();
-                locals_in_scope.dedup();
-
-                println!("variable `{}` not found in current scope", id);
-                println!("locals in scope: {:#?}", locals_in_scope);
-                println!("globals: {:#?}", self.globals);
-                todo!();
 
                 1
             },

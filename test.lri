@@ -48,5 +48,7 @@ fn g(x: i32) {
     print(x);
     let y = x + 4;
     print(y);
+    y = y + 1;
+    print(y);
     print(g);
 }
