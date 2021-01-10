@@ -90,8 +90,8 @@ impl VM {
         }
 
         // From the top of the stack, skip over the function arguments
-        let fn_index = self.stack.len() - 1 - arity;
-        match self.stack[fn_index] {
+        let stack_base = self.stack.len() - 1 - arity;
+        match self.stack[stack_base] {
             Value::Subroutine(ref sub) => {
                 if sub.num_arguments() as usize != arity {
                     return Err(VMError::WrongNumArguments {
@@ -116,7 +116,7 @@ impl VM {
 
                 self.program_counter = sub.start_address();
                 self.stack_frames
-                    .push(StackFrame::new(self.stack.len(), return_address));
+                    .push(StackFrame::new(stack_base, return_address));
             },
 
             Value::NativeFn(f) => f(&mut self.stack),

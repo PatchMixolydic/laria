@@ -626,6 +626,12 @@ impl VM {
                     .stack_base;
                 let index = stack_base + index_offset;
 
+
+                if self.trace_execution {
+                    println!("VM::tick: GetLocal {} ({} + {})", index, stack_base, index_offset);
+                    println!("VM::tick: Stack {:#?}", self.stack)
+                }
+
                 match self.stack.get(index) {
                     Some(res) => {
                         // Putting `res.clone()` inline causes a borrow checker error.
@@ -653,6 +659,10 @@ impl VM {
                     .expect("Tried to set a local variable with no stack frames pushed")
                     .stack_base;
                 let index = stack_base + index_offset;
+
+                if self.trace_execution {
+                    println!("VM::tick: SetLocal {} ({} + {}) = {}", index, stack_base, index_offset, value);
+                }
 
                 if self.stack.len() < index {
                     return Err(VMError::StackIndexTooLarge {
