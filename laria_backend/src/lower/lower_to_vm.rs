@@ -37,8 +37,6 @@ impl Lower {
     fn new() -> Self {
         // TODO: hack, remove when we call a function to start
         let instructions = vec![Instruction::Push as u8, ValueKind::Unit as u8];
-        let mut locals_stack = Vec::with_capacity(16);
-        locals_stack.push("");
 
         Self {
             instructions,
