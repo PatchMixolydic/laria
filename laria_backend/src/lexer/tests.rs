@@ -1,3 +1,5 @@
+use proptest::prelude::*;
+
 use super::{lex, LexError};
 use crate::token::{DelimKind, LiteralKind, Symbol, TokenKind};
 
@@ -142,4 +144,33 @@ fn lex_comment() {
         TokenKind::Symbol(Symbol::Semicolon),
         TokenKind::CloseDelim(DelimKind::Brace),
     );
+}
+
+proptest! {
+    // Inspired by proptest's README
+    #[test]
+    fn fuzz(src in ".{0,4096}") {
+        let _ = lex(&src);
+    }
+
+    // Tries filling a string with random characters (except for \ and ^)
+    #[test]
+    fn string_stress(src in "\"[^\\\\\"]{0,4096}\"") {
+        let mut res = lex(&src).expect("Expected a successful lex").into_iter();
+
+        prop_assert!(matches!(
+            res.next().unwrap().kind,
+            TokenKind::Literal(LiteralKind::String(_))
+        ));
+    }
+
+    #[test]
+    fn number_stress(src in "[0-9]{1,8}\\.?[0-9]{1,8}") {
+        let mut res = lex(&src).expect("Expected a successful lex").into_iter();
+
+        prop_assert!(matches!(
+            res.next().unwrap().kind,
+            TokenKind::Literal(LiteralKind::Integer(_) | LiteralKind::Float(_))
+        ));
+    }
 }
