@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 laria_backend = { path = "../laria_backend" }
+laria_log = { path = "../laria_log" }
 laria_vm = { path = "../laria_vm" }
 pico-args = "0.3.4"
 rustc_version_runtime = "0.2.0"

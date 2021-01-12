@@ -4,6 +4,7 @@ cargo-features = ["strip"]
 members = [
     "laria",
     "laria_backend",
+    "laria_log",
     "laria_vm"
 ]
 

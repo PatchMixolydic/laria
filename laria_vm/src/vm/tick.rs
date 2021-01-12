@@ -1,5 +1,6 @@
 //! Implements [`VM::tick`][VM::tick].
 
+use laria_log::*;
 use num_traits::FromPrimitive;
 
 use super::{VMError, VM};
@@ -55,8 +56,8 @@ impl VM {
         }
 
         if self.trace_execution {
-            println!();
-            println!("VM::tick: stack {:#?}", self.stack);
+            trace!("---------- new instruction ----------");
+            trace!("stack {:#?}", self.stack);
         }
 
         let opcode = match self.script.instructions.get(self.program_counter) {
@@ -74,10 +75,7 @@ impl VM {
         self.program_counter += 1;
 
         if self.trace_execution {
-            print!("VM::tick: {:?}", instruction);
-            if !matches!(instruction, Instruction::Push) {
-                println!();
-            }
+            trace!("instruction: {:?}", instruction);
         }
 
         match instruction {
@@ -102,7 +100,7 @@ impl VM {
                     };
 
                 if self.trace_execution {
-                    println!(" {:?}", value);
+                    trace!("push {:?}", value);
                 }
 
                 self.stack.push(value);
@@ -576,7 +574,7 @@ impl VM {
                     .expect("Executed a return instruction with no stack frames");
 
                 if self.trace_execution {
-                    println!("VM::tick: returned {:?}", ret_val);
+                    trace!("returned {:?}", ret_val);
                 }
 
                 if self.stack_frames.is_empty() {
@@ -624,8 +622,8 @@ impl VM {
 
 
                 if self.trace_execution {
-                    println!("VM::tick: GetLocal {} ({} + {})", index, stack_base, index_offset);
-                    println!("VM::tick: Stack {:#?}", self.stack)
+                    trace!("GetLocal {} ({} + {})", index, stack_base, index_offset);
+                    trace!("stack {:#?}", self.stack);
                 }
 
                 match self.stack.get(index) {
@@ -657,7 +655,7 @@ impl VM {
                 let index = stack_base + index_offset;
 
                 if self.trace_execution {
-                    println!("VM::tick: SetLocal {} ({} + {}) = {}", index, stack_base, index_offset, value);
+                    trace!("SetLocal {} ({} + {}) = {}", index, stack_base, index_offset, value);
                 }
 
                 if self.stack.len() < index {

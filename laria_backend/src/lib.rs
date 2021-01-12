@@ -12,6 +12,7 @@ mod lexer;
 mod lower;
 mod parser;
 
+use laria_log::*;
 use std::{
     fs::File,
     io::{BufReader, Read},
@@ -19,9 +20,8 @@ use std::{
     process::exit,
 };
 
-use parser::ast;
-
 pub use lower::lower_to_vm;
+use parser::ast;
 
 /// Lexes and parses a file. Aborts on errors (this may be temporary).
 pub fn lex_and_parse(filename: impl AsRef<Path>) -> ast::Script {
@@ -29,8 +29,8 @@ pub fn lex_and_parse(filename: impl AsRef<Path>) -> ast::Script {
     let mut file = match File::open(filename) {
         Ok(res) => BufReader::new(res),
         Err(err) => {
-            eprintln!(
-                "error: couldn't open {} for reading: {}",
+            error!(
+                "couldn't open {} for reading: {}",
                 filename.to_string_lossy(),
                 err
             );
@@ -44,7 +44,7 @@ pub fn lex_and_parse(filename: impl AsRef<Path>) -> ast::Script {
         match file.read_to_string(&mut source) {
             Ok(_) => source,
             Err(err) => {
-                eprintln!("error: problem reading file: {}", err);
+                error!("problem reading file: {}", err);
                 exit(2);
             },
         }

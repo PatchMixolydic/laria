@@ -1,4 +1,5 @@
 use laria_backend::{lex_and_parse, lower_to_vm};
+use laria_log::*;
 use laria_vm::vm::VM;
 use pico_args::Arguments;
 use rustc_version_runtime::version_meta;
@@ -59,18 +60,14 @@ fn main() {
         Err(pico_args::Error::UnusedArgsLeft(args)) => {
             let s_if_plural = if args.len() == 1 { "" } else { "s" };
 
-            println!(
-                "error: unknown argument{}: {}",
-                s_if_plural,
-                args.join(", ")
-            );
+            error!("unknown argument{}: {}", s_if_plural, args.join(", "));
 
             eprintln!("{}", usage());
             exit(1);
         },
 
         Err(err) => {
-            println!("error: {}", err);
+            error!("{}", err);
             eprintln!("{}", usage());
             exit(1);
         },
@@ -95,7 +92,7 @@ fn main() {
     }
 
     let source_file = args.source_file.unwrap_or_else(|| {
-        eprintln!("error: no source file provided");
+        error!("no source file provided");
         eprintln!("{}", usage());
         exit(1);
     });
@@ -103,15 +100,15 @@ fn main() {
 
     if args.compile {
         if args.verbose {
-            println!("Compiling {}...", source_file)
+            info!("compiling {}...", source_file)
         }
 
         let ast = lex_and_parse(source_path);
-        println!("{}", ast);
+        debug!("ast:\n{}", ast);
         todo!("lower to file");
     } else {
         if args.verbose {
-            println!("Interpreting {}...", source_file);
+            info!("interpreting {}...", source_file);
         }
 
         let ast = lex_and_parse(source_path);
@@ -123,7 +120,7 @@ fn main() {
                 Ok(_) => (),
 
                 Err(err) => {
-                    eprintln!("vm error: {}", err);
+                    error!("{}", err);
                     break;
                 },
             }

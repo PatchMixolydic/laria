@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 anyhow = "1.0.33"
 annotate-snippets = { version = "0.9.0", features = ["color"] }
+laria_log = { path = "../laria_log" }
 laria_vm = { path = "../laria_vm" }
 thiserror = "1.0.21"
 

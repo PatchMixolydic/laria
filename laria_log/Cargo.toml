@@ -1,0 +1,10 @@
+[package]
+name = "laria_log"
+description = "Simple logging for Laria"
+license = "MIT"
+version = "0.1.0"
+authors = ["Ruby Lazuli <nipkraps@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+colored = "2.0.0"
