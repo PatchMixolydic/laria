@@ -13,10 +13,11 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Debug)]
 struct Args {
+    compile: bool,
     help: bool,
+    trace_execution: bool,
     verbose: bool,
     version: bool,
-    compile: bool,
     source_file: Option<String>,
 }
 
@@ -28,10 +29,11 @@ fn usage() -> String {
         concat!(
             "Usage: {} [options] [file]\n",
             "Options:\n",
+            "   -c, --compile - compile the input file to bytecode\n",
             "   -h, --help    - view help\n",
+            "   -t, --trace   - trace execution of the virtual machine\n",
             "   -v, --verbose - enable verbose output\n",
             "   -V, --version - show version\n",
-            "   -c, --compile - compile the input file to bytecode\n",
         ),
         filename
     )
@@ -41,10 +43,11 @@ fn process_args() -> Result<Args, pico_args::Error> {
     let mut args = Arguments::from_env();
 
     Ok(Args {
+        compile: args.contains(["-c", "--compile"]),
         help: args.contains(["-h", "--help"]),
+        trace_execution: args.contains(["-t", "--trace"]),
         verbose: args.contains(["-v", "--verbose"]),
         version: args.contains(["-V", "--version"]),
-        compile: args.contains(["-c", "--compile"]),
         source_file: args.free_from_str()?,
     })
 }
@@ -113,7 +116,7 @@ fn main() {
 
         let ast = lex_and_parse(source_path);
         let script = lower_to_vm::lower_script(ast);
-        let mut vm = VM::new(script, args.verbose);
+        let mut vm = VM::new(script, args.trace_execution);
 
         loop {
             match vm.tick() {
