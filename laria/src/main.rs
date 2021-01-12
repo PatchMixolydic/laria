@@ -54,7 +54,14 @@ fn main() {
         Ok(args) => args,
 
         Err(pico_args::Error::UnusedArgsLeft(args)) => {
-            println!("error: unknown arguments: {}", args.join(", "));
+            let s_if_plural = if args.len() == 1 { "" } else { "s" };
+
+            println!(
+                "error: unknown argument{}: {}",
+                s_if_plural,
+                args.join(", ")
+            );
+
             eprintln!("{}", usage());
             exit(1);
         },

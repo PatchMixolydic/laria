@@ -37,6 +37,18 @@ fn main() {
 
     print("Cool!");
 
+    let y = 4;
+
+    if y == 2 {
+        print("four is two?");
+    } else if y == 2 + 3 {
+        print("2 + 3 is four?")
+    } else if y == 2 + 2 {
+        print("2 + 2 is four!")
+    } else {
+        print("what is four?");
+    }
+
     let x = if x == 32 {
         100
     } else {
