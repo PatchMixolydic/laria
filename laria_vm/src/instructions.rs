@@ -32,7 +32,7 @@ pub enum Instruction {
     /// if the `COMPARISON` flag is clear.
     /// Branching when `COMPARISON` is clear is
     /// an optimization to avoid negating the
-    /// conditions on `if` statements.
+    /// conditions on `if` and `while` expressions.
     CondBranch,
     /// Jumps unconditionally to a target address.
     Jump,
