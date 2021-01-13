@@ -46,6 +46,14 @@ impl Lower {
         }
     }
 
+    /// Pushes a `Push {value}` instruction to
+    /// the compiled bytecode.
+    fn emit_push(&mut self, value: Value) {
+        let value_bytes = value.into_bytes().expect("couldn't convert value to bytes");
+        self.instructions.push(Instruction::Push as u8);
+        self.instructions.extend_from_slice(&value_bytes);
+    }
+
     /// The entry point for lowering.
     fn lower_script(mut self, script: Script) -> VMScript {
         for func in script.functions {
@@ -100,16 +108,10 @@ impl Lower {
     /// Emits a jump instruction with a temporary target address.
     /// Returns the range in `self.instructions` that holds the address.
     fn emit_temp_jump_target(&mut self, jump: Instruction) -> Range<usize> {
-        self.instructions.push(Instruction::Push as u8);
-
-        let tmp_target = Value::UnsignedInt(0xDEADBEEF0BADCAFE)
-            .into_bytes()
-            .expect("couldn't convert jump target into bytes");
-
         let mut target_range = {
             // This will be the first byte of the target once it's pushed
-            let start = self.instructions.len();
-            self.instructions.extend_from_slice(&tmp_target);
+            let start = self.instructions.len() + 1;
+            self.emit_push(Value::UnsignedInt(0xDEADBEEF0BADCAFE));
 
             start..self.instructions.len()
         };
@@ -143,13 +145,7 @@ impl Lower {
         for (i, name) in self.locals_stack.iter().enumerate().rev() {
             if name == &id {
                 // Found a local
-                let local_idx_bytes = Value::UnsignedInt(i as u64)
-                    .into_bytes()
-                    .expect("Couldn't convert local variable index to bytes");
-
-                self.instructions.push(Instruction::Push as u8);
-                self.instructions.extend_from_slice(&local_idx_bytes);
-
+                self.emit_push(Value::UnsignedInt(i as u64));
                 return true;
             }
         }
@@ -164,13 +160,7 @@ impl Lower {
     fn try_resolve_global(&mut self, id: &str) -> bool {
         if self.globals.contains_key(id) {
             // yup!
-            let id_bytes = Value::String(id.to_owned())
-                .into_bytes()
-                .expect("Couldn't convert identifier to bytes");
-
-            self.instructions.push(Instruction::Push as u8);
-            self.instructions.extend_from_slice(&id_bytes);
-
+            self.emit_push(Value::String(id.to_owned()));
             true
         } else {
             false
@@ -201,8 +191,6 @@ impl Lower {
     fn lower_expression(&mut self, expression: Expression) {
         match expression.kind {
             ExpressionKind::Literal(kind) => {
-                self.instructions.push(Instruction::Push as u8);
-
                 let value = match kind {
                     LiteralKind::Integer(i) => Value::Integer(i),
                     LiteralKind::String(s) => Value::String(s),
@@ -210,12 +198,7 @@ impl Lower {
                     LiteralKind::Boolean(b) => Value::Byte(b as u8),
                 };
 
-                // TODO: handle this properly
-                self.instructions.extend_from_slice(
-                    &value
-                        .into_bytes()
-                        .expect("Couldn't convert literal to bytes"),
-                );
+                self.emit_push(value);
             },
 
             ExpressionKind::BinaryOperation(lhs, BinaryOperator::Assign, rhs) => {
@@ -312,12 +295,7 @@ impl Lower {
                     _ => todo!("function call with {}", maybe_fn_name),
                 };
 
-                let name_bytes = Value::String(fn_name)
-                    .into_bytes()
-                    .expect("couldn't convert fn name to bytes");
-
-                self.instructions.push(Instruction::Push as u8);
-                self.instructions.extend_from_slice(&name_bytes);
+                self.emit_push(Value::String(fn_name));
                 self.instructions.push(Instruction::GetGlobal as u8);
 
                 let arity: u8 = args.len().try_into().expect("too many fn args");
@@ -367,84 +345,55 @@ impl Lower {
             },
 
             ExpressionKind::Loop(None, body) => {
-                let loop_target_bytes = Value::UnsignedInt(self.instructions.len() as u64)
-                    .into_bytes()
-                    .expect("Couldn't convert loop jump target to bytes");
-
+                let loop_target = Value::UnsignedInt(self.instructions.len() as u64);
                 self.lower_expression(body.into());
-                self.instructions.push(Instruction::Push as u8);
-                self.instructions.extend_from_slice(&loop_target_bytes);
+                self.emit_push(loop_target);
                 self.instructions.push(Instruction::Jump as u8);
             },
 
             ExpressionKind::Loop(Some(num_loops), body) => {
-                let loop_counter_bytes = Value::Integer(0)
-                    .into_bytes()
-                    .expect("Couldn't convert temporary local variable to bytes");
-
-                self.instructions.push(Instruction::Push as u8);
-                self.instructions.extend_from_slice(&loop_counter_bytes);
-
+                // Create temporary locals to hold the loop counter and maximum
+                self.emit_push(Value::Integer(0));
                 let loop_counter_local = self.emit_temp_local();
                 self.lower_expression(*num_loops);
                 let loop_max_local = self.emit_temp_local();
 
-                let loop_ctr_idx_bytes = Value::UnsignedInt(loop_counter_local as u64)
-                    .into_bytes()
-                    .expect("Couldn't convert loop counter index to bytes");
+                let loop_target = Value::UnsignedInt(self.instructions.len() as u64);
 
-                let loop_max_idx_bytes = Value::UnsignedInt(loop_max_local as u64)
-                    .into_bytes()
-                    .expect("Couldn't convert loop max index to bytes");
-
-                let one = Value::Integer(1)
-                    .into_bytes()
-                    .expect("Couldn't convert 1 to bytes");
-
-                let loop_target_bytes = Value::UnsignedInt(self.instructions.len() as u64)
-                    .into_bytes()
-                    .expect("Couldn't convert loop jump target to bytes");
-
-                self.instructions.push(Instruction::Push as u8);
-                self.instructions.extend_from_slice(&loop_ctr_idx_bytes);
+                // Create the loop condition
+                self.emit_push(Value::UnsignedInt(loop_counter_local as u64));
                 self.instructions.push(Instruction::GetLocal as u8);
-                self.instructions.push(Instruction::Push as u8);
-                self.instructions.extend_from_slice(&loop_max_idx_bytes);
+                self.emit_push(Value::UnsignedInt(loop_max_local as u64));
                 self.instructions.push(Instruction::GetLocal as u8);
-                // CondBranch jumps on false
+                // CondBranch jumps when the topmost value on the stack is false (0).
+                // This is effectively `while loop_ctr < loop_max { ... }`
                 self.instructions.push(Instruction::Less as u8);
                 let exit_target_range = self.emit_temp_jump_target(Instruction::CondBranch);
 
+                // Execute the body
                 self.lower_expression(body.into());
                 // Increment the loop counter
-                self.instructions.push(Instruction::Push as u8);
-                self.instructions.extend_from_slice(&loop_ctr_idx_bytes);
+                self.emit_push(Value::UnsignedInt(loop_counter_local as u64));
                 self.instructions.push(Instruction::GetLocal as u8);
-                self.instructions.push(Instruction::Push as u8);
-                self.instructions.extend_from_slice(&one);
+                self.emit_push(Value::Integer(1));
                 self.instructions.push(Instruction::Add as u8);
-                self.instructions.push(Instruction::Push as u8);
-                self.instructions.extend_from_slice(&loop_ctr_idx_bytes);
+                self.emit_push(Value::UnsignedInt(loop_counter_local as u64));
                 self.instructions.push(Instruction::SetLocal as u8);
 
-                self.instructions.push(Instruction::Push as u8);
-                self.instructions.extend_from_slice(&loop_target_bytes);
+                self.emit_push(loop_target);
                 self.instructions.push(Instruction::Jump as u8);
 
                 self.patch_real_jump_target(exit_target_range, self.instructions.len());
             },
 
             ExpressionKind::While(condition, body) => {
-                let loop_target_bytes = Value::UnsignedInt(self.instructions.len() as u64)
-                    .into_bytes()
-                    .expect("Couldn't convert loop jump target to bytes");
+                let loop_target = Value::UnsignedInt(self.instructions.len() as u64);
 
                 self.lower_expression(*condition);
                 let exit_target_range = self.emit_temp_jump_target(Instruction::CondBranch);
 
                 self.lower_expression(body.into());
-                self.instructions.push(Instruction::Push as u8);
-                self.instructions.extend_from_slice(&loop_target_bytes);
+                self.emit_push(loop_target);
                 self.instructions.push(Instruction::Jump as u8);
 
                 self.patch_real_jump_target(exit_target_range, self.instructions.len());
