@@ -5,6 +5,7 @@ use crate::{errors::Span, lexer::token::LiteralKind};
 #[derive(Clone, Debug)]
 pub struct Script {
     pub functions: Vec<FunctionDef>,
+    pub extern_blocks: Vec<ExternBlock>,
     pub span: Span,
 }
 
@@ -12,6 +13,7 @@ impl Script {
     pub const fn new() -> Self {
         Self {
             functions: Vec::new(),
+            extern_blocks: Vec::new(),
             span: Span::empty(),
         }
     }
@@ -19,6 +21,10 @@ impl Script {
 
 impl fmt::Display for Script {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for extern_block in &self.extern_blocks {
+            write!(f, "{}\n\n", extern_block)?;
+        }
+
         for function in &self.functions {
             write!(f, "{}\n\n", function)?;
         }
@@ -76,6 +82,30 @@ impl FunctionDef {
 impl fmt::Display for FunctionDef {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} {}", self.header, self.body)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ExternBlock {
+    pub fn_decls: Vec<FunctionDecl>,
+    pub span: Span,
+}
+
+impl ExternBlock {
+    pub fn new(fn_decls: Vec<FunctionDecl>, span: Span) -> Self {
+        Self { fn_decls, span }
+    }
+}
+
+impl fmt::Display for ExternBlock {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "extern {{")?;
+
+        for decl in &self.fn_decls {
+            writeln!(f, "{};", decl)?;
+        }
+
+        write!(f, "}}")
     }
 }
 

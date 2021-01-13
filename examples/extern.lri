@@ -1,0 +1,5 @@
+extern {
+    fn print(arg: String);
+}
+
+fn main() {}

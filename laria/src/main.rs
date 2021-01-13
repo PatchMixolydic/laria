@@ -104,7 +104,13 @@ fn main() {
         }
 
         let ast = lex_and_parse(source_path);
-        debug!("ast:\n{}", ast);
+
+        if args.verbose {
+            debug!("ast:\n{:#?}", ast);
+        } else {
+            debug!("ast:\n{}", ast);
+        }
+
         todo!("lower to file");
     } else {
         if args.verbose {
