@@ -27,6 +27,8 @@ impl fmt::Display for Script {
     }
 }
 
+/// A function declaration. This is just the function's header,
+/// which contains its name and arguments.
 #[derive(Clone, Debug)]
 pub struct FunctionDecl {
     pub name: String,
@@ -56,6 +58,8 @@ impl fmt::Display for FunctionDecl {
     }
 }
 
+/// A function definition, consisting of a [`FunctionDecl`]
+/// followed by a block.
 #[derive(Clone, Debug)]
 pub struct FunctionDef {
     pub header: FunctionDecl,
