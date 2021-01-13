@@ -1,5 +1,3 @@
-extern {
-    fn print(arg: String);
-}
+extern fn print(arg: String);
 
 fn main() {}

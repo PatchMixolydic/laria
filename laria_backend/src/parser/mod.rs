@@ -185,7 +185,7 @@ impl<'src> Parser<'src> {
             if self.check_next(Expected::Keyword(Keyword::Fn)) {
                 res.functions.push(self.parse_fn()?);
             } else if self.check_next(Expected::Keyword(Keyword::Extern)) {
-                res.extern_blocks.push(self.parse_extern_block()?);
+                res.extern_fns.push(self.parse_extern_fn()?);
             } else {
                 match self.tokens.peek() {
                     Some(_) => return Err(self.unexpected()),
@@ -252,22 +252,13 @@ impl<'src> Parser<'src> {
         Ok(FunctionDecl::new(fn_name, args, header_span))
     }
 
-    fn parse_extern_block(&mut self) -> Result<ExternBlock, ParseError> {
+    fn parse_extern_fn(&mut self) -> Result<ExternFn, ParseError> {
         let mut span = self.expect_item(Expected::Keyword(Keyword::Extern))?.span;
-        self.expect_item(Expected::OpenDelim(DelimKind::Brace))?;
+        let header = self.parse_fn_header()?;
+        let semicolon_span = self.expect_item(Expected::Symbol(Symbol::Semicolon))?.span;
+        span.grow_to_contain(&header.span);
 
-        let mut fn_decls = Vec::new();
-        while !self.check_next(Expected::CloseDelim(DelimKind::Brace)) {
-            fn_decls.push(self.parse_fn_header()?);
-            self.expect_item(Expected::Symbol(Symbol::Semicolon))?;
-        }
-
-        let close_brace_span = self
-            .expect_item(Expected::CloseDelim(DelimKind::Brace))?
-            .span;
-        span.grow_to_contain(&close_brace_span);
-
-        Ok(ExternBlock::new(fn_decls, span))
+        Ok(ExternFn::new(header, span))
     }
 
     fn parse_fn(&mut self) -> Result<FunctionDef, ParseError> {
