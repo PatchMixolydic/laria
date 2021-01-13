@@ -4,7 +4,7 @@ use crate::{errors::Span, lexer::token::LiteralKind};
 
 #[derive(Clone, Debug)]
 pub struct Script {
-    pub functions: Vec<Function>,
+    pub functions: Vec<FunctionDef>,
     pub span: Span,
 }
 
@@ -28,25 +28,23 @@ impl fmt::Display for Script {
 }
 
 #[derive(Clone, Debug)]
-pub struct Function {
+pub struct FunctionDecl {
     pub name: String,
     pub arguments: Vec<(String, String)>,
-    pub body: Block,
     pub span: Span,
 }
 
-impl Function {
-    pub const fn new() -> Self {
+impl FunctionDecl {
+    pub fn new(name: String, arguments: Vec<(String, String)>, span: Span) -> Self {
         Self {
-            name: String::new(),
-            arguments: Vec::new(),
-            body: Block::new(),
-            span: Span::empty(),
+            name,
+            arguments,
+            span,
         }
     }
 }
 
-impl fmt::Display for Function {
+impl fmt::Display for FunctionDecl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "fn {}(", self.name)?;
 
@@ -54,7 +52,26 @@ impl fmt::Display for Function {
             write!(f, "{}: {},", argument, ty)?;
         }
 
-        write!(f, ") {}", self.body)
+        write!(f, ")")
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct FunctionDef {
+    pub header: FunctionDecl,
+    pub body: Block,
+    pub span: Span,
+}
+
+impl FunctionDef {
+    pub const fn new(header: FunctionDecl, body: Block, span: Span) -> Self {
+        Self { header, body, span }
+    }
+}
+
+impl fmt::Display for FunctionDef {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} {}", self.header, self.body)
     }
 }
 

@@ -196,21 +196,21 @@ impl<'src> Parser<'src> {
         Ok(res)
     }
 
-    fn parse_fn(&mut self) -> Result<Function, ParseError> {
-        let mut res = Function::new();
-        res.span = self.expect_item(Expected::Keyword(Keyword::Fn))?.span;
+    fn parse_fn_header(&mut self) -> Result<FunctionDecl, ParseError> {
+        let mut header_span = self.expect_item(Expected::Keyword(Keyword::Fn))?.span;
         let name_token = self.expect_item(Expected::Ident)?;
         let name_span = name_token.span;
-        res.name = name_token.kind.unwrap_ident();
+        let fn_name = name_token.kind.unwrap_ident();
 
         self.expect_item(Expected::OpenDelim(DelimKind::Paren))?;
+        let mut args = Vec::new();
 
         while !self.check_next(Expected::CloseDelim(DelimKind::Paren)) {
             let arg_name = self.expect_item(Expected::Ident)?.kind.unwrap_ident();
             self.expect_item(Expected::Symbol(Symbol::Colon))?;
             let arg_type = self.expect_item(Expected::Ident)?.kind.unwrap_ident();
 
-            res.arguments.push((arg_name, arg_type));
+            args.push((arg_name, arg_type));
 
             if !self.check_next(Expected::Symbol(Symbol::Comma))
                 && !self.check_next(Expected::CloseDelim(DelimKind::Paren))
@@ -222,15 +222,19 @@ impl<'src> Parser<'src> {
             self.eat(Expected::Symbol(Symbol::Comma));
         }
 
-        self.expect_item(Expected::CloseDelim(DelimKind::Paren))?;
+        let close_paren_span = self
+            .expect_item(Expected::CloseDelim(DelimKind::Paren))?
+            .span;
+
+        header_span.grow_to_contain(&close_paren_span);
 
         // TODO: does this belong here?
-        if res.arguments.len() > u8::MAX as usize {
+        if args.len() > u8::MAX as usize {
             self.error_ctx
-                .build_error(format!("function `{}` has too many arguments", res.name))
+                .build_error(format!("function `{}` has too many arguments", fn_name))
                 .span_label(
                     name_span,
-                    format!("`{}` has {} arguments", res.name, res.arguments.len()),
+                    format!("`{}` has {} arguments", fn_name, args.len()),
                 )
                 .note(format!(
                     "Laria currently only allows for up to {} arguments on functions",
@@ -242,10 +246,16 @@ impl<'src> Parser<'src> {
             return Err(ParseError::TooManyArgsOnFnDef);
         }
 
-        res.body = self.parse_block()?;
-        res.span.grow_to_contain(&res.body.span);
+        Ok(FunctionDecl::new(fn_name, args, header_span))
+    }
 
-        Ok(res)
+    fn parse_fn(&mut self) -> Result<FunctionDef, ParseError> {
+        let header = self.parse_fn_header()?;
+        let body = self.parse_block()?;
+        let mut fn_span = header.span;
+        fn_span.grow_to_contain(&body.span);
+
+        Ok(FunctionDef::new(header, body, fn_span))
     }
 
     fn parse_block(&mut self) -> Result<Block, ParseError> {

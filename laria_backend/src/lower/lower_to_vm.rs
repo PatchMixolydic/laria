@@ -9,7 +9,7 @@ use std::{collections::HashMap, convert::TryInto, ops::Range};
 use crate::{
     lexer::token::LiteralKind,
     parser::ast::{
-        BinaryOperator, Block, Expression, ExpressionKind, Function, Script, Statement,
+        BinaryOperator, Block, Expression, ExpressionKind, FunctionDef, Script, Statement,
         StatementKind, UnaryOperator,
     },
 };
@@ -63,17 +63,18 @@ impl Lower {
         self.into()
     }
 
-    fn lower_function(&mut self, function: Function) {
+    fn lower_function(&mut self, function: FunctionDef) {
         let start_address = self.instructions.len();
 
         // TODO: handle this properly
         let num_args = function
+            .header
             .arguments
             .len()
             .try_into()
             .expect("too many fn args");
 
-        let subroutine = Subroutine::new(function.name, num_args, start_address);
+        let subroutine = Subroutine::new(function.header.name, num_args, start_address);
         self.globals
             .insert(subroutine.name().to_owned(), Value::Subroutine(subroutine));
 
@@ -81,7 +82,7 @@ impl Lower {
         // which is unnameable
         self.locals_stack.push(String::new());
 
-        for (name, _) in &function.arguments {
+        for (name, _) in &function.header.arguments {
             self.locals_stack.push(name.to_owned());
         }
 
