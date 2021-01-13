@@ -78,7 +78,7 @@ impl<'src> Lexer<'src> {
         let next_matches = self
             .chars
             .peek()
-            .map(|tup| tup.1 == next_char)
+            .map(|(_, c)| *c == next_char)
             .unwrap_or(false);
 
         if next_matches {
@@ -102,9 +102,6 @@ impl<'src> Lexer<'src> {
             Some(x) => (x.0, x.1),
             None => return Ok(None),
         };
-
-        // Span for c, since it's the most common
-        let span_c = Span::new(idx, 1);
 
         match c {
             'A'..='Z' | 'a'..='z' | '_' => Ok(Some(self.consume_ident_or_keyword())),
@@ -207,7 +204,7 @@ impl<'src> Lexer<'src> {
 
             _ => {
                 self.error_ctx
-                    .build_error_span(span_c, format!("unexpected character `{}`", c))
+                    .build_error_span(Span::new(idx, 1), format!("unexpected character `{}`", c))
                     .emit();
                 Err(LexError::UnexpectedChar(c, idx))
             },
