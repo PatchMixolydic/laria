@@ -106,7 +106,12 @@ impl Lower {
     }
 
     /// Emits a jump instruction with a temporary target address.
+    /// Once the real target address is available, this temporary target
+    /// should be replaced using [`patch_real_jump_target`].
     /// Returns the range in `self.instructions` that holds the address.
+    ///
+    /// [`patch_real_jump_target`]: Self::patch_real_jump_target
+    #[must_use = "temporary jump targets must be replaced with real jump targets"]
     fn emit_temp_jump_target(&mut self, jump: Instruction) -> Range<usize> {
         let mut target_range = {
             // This will be the first byte of the target once it's pushed
