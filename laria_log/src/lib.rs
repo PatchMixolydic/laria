@@ -11,18 +11,18 @@ pub use colored::Colorize;
 macro_rules! log {
     (($name:ident, $colour:ident) => $fmt:literal $(,)?) => {{
         eprintln!(
-            "{} {} {}",
+            "{} {}: {}",
             concat!("[", file!(), ":", line!(), "]").yellow(),
-            concat!(stringify!($name), ":").$colour().bold(),
+            stringify!($name).$colour().bold(),
             $fmt
         );
     }};
 
     (($name:ident, $colour:ident) => $fmt:literal, $($arg:expr),* $(,)?) => {{
         eprintln!(
-            "{} {} {}",
+            "{} {}: {}",
             concat!("[", file!(), ":", line!(), "]").yellow(),
-            concat!(stringify!($name), ":").$colour().bold(),
+            stringify!($name).$colour().bold(),
             format!($fmt, $($arg),*)
         );
     }};
@@ -33,16 +33,16 @@ macro_rules! log {
 macro_rules! log {
     (($name:ident, $colour:ident) => $fmt:literal $(,)?) => {{
         eprintln!(
-            "{} {}",
-            concat!(stringify!($name), ":").$colour().bold(),
+            "{}: {}",
+            stringify!($name).$colour().bold(),
             $fmt
         );
     }};
 
     (($name:ident, $colour:ident) => $fmt:literal, $($arg:expr),* $(,)?) => {{
         eprintln!(
-            "{} {}",
-            concat!(stringify!($name), ":").$colour().bold(),
+            "{}: {}",
+            stringify!($name).$colour().bold(),
             format!($fmt, $($arg),*)
         );
     }};
