@@ -4,5 +4,9 @@ fn main() {
 }
 
 fn f(x: i64) -> i64 {
-    print(x);
+    if 4 {
+        print(x);
+    } else {
+        "!"
+    }
 }

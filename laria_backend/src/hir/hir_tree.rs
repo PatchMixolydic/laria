@@ -105,6 +105,15 @@ impl Block {
             span,
         }
     }
+
+    /// Gets the [`Span`] of this block's return expression if it has one.
+    /// Otherwise, this returns the [`Span`] of the block.
+    pub(super) fn span_for_return_expr(&self) -> Span {
+        match &self.return_expr {
+            Some(expr) => expr.span,
+            None => self.span,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]

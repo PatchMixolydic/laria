@@ -57,17 +57,24 @@ impl<'src> Typecheck<'src> {
     /// Returns the TypeId corresponding to the block's return type.
     fn check_block(&mut self, block: &Block) -> TypeId {
         for stmt in &block.statements {
+            // TODO: handle `return` expressions
             self.check_statement(stmt);
         }
 
-        if let Some(return_expr) = &block.return_expr {
-            self.check_expression(return_expr.as_ref());
-            self.try_unify(block.type_id, return_expr.type_id, return_expr.span);
-        } else {
-            // TODO: this doesn't seem right; `return` expressions can make
-            // the function not return unit...
-            let unit_type_id = self.ty_env.get_or_add_type(Type::unit());
-            self.try_unify(block.type_id, unit_type_id, block.span);
+        match &block.return_expr {
+            Some(return_expr) => {
+                self.check_expression(return_expr.as_ref());
+                self.try_unify(block.type_id, return_expr.type_id, return_expr.span);
+            },
+
+            None => {
+                if matches!(self.ty_env.get_type(block.type_id), Type::Variable(_)) {
+                    // if we haven't deduced a return type at this point, it might be ()
+                    // TODO: is this right?
+                    let unit_type_id = self.ty_env.get_or_add_type(Type::unit());
+                    self.try_unify(block.type_id, unit_type_id, block.span);
+                }
+            },
         }
 
         block.type_id
@@ -105,14 +112,18 @@ impl<'src> Typecheck<'src> {
                 self.try_unify(cond.type_id, bool_id, cond.span);
 
                 let then_ret_ty_id = self.check_block(&then.0);
-                self.try_unify(then.1, then_ret_ty_id, then.0.span);
+                self.try_unify(then.1, then_ret_ty_id, then.0.span_for_return_expr());
 
                 if let Some(otherwise) = otherwise {
                     let else_ret_ty_id = self.check_block(&otherwise.0);
-                    self.try_unify(otherwise.1, else_ret_ty_id, otherwise.0.span);
+                    self.try_unify(
+                        otherwise.1,
+                        else_ret_ty_id,
+                        otherwise.0.span_for_return_expr(),
+                    );
 
                     // The return types of both blocks must be the same.
-                    self.try_unify(otherwise.1, then.1, otherwise.0.span);
+                    self.try_unify(otherwise.1, then.1, otherwise.0.span_for_return_expr());
                 }
 
                 then.1
@@ -132,7 +143,10 @@ impl<'src> Typecheck<'src> {
                 let bool_ty = self.ty_env.get_or_add_type(Type::Boolean);
                 self.try_unify(cond.type_id, bool_ty, cond.span);
                 self.check_block(body);
-                self.ty_env.get_or_add_type(Type::unit())
+
+                let unit_type_id = self.ty_env.get_or_add_type(Type::unit());
+                self.try_unify(body.type_id, unit_type_id, body.span_for_return_expr());
+                body.type_id
             },
 
             ExpressionKind::Block(ref block) => {
