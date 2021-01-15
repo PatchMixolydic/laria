@@ -140,6 +140,8 @@ impl<'src> Typecheck<'src> {
                     self.try_unify(count.type_id, int_ty, count.span);
                 }
 
+                // TODO: infinite loops should diverge
+
                 self.check_block(body, fn_return_type);
                 body.type_id
             },
@@ -266,7 +268,7 @@ impl<'src> Typecheck<'src> {
             },
 
             ExpressionKind::Return(ref ret_expr) => {
-                // TODO: `return: !`
+                // TODO: handle divergence
                 let ret_ty = self.check_expression(ret_expr, fn_return_type);
 
                 match fn_return_type {
@@ -274,7 +276,7 @@ impl<'src> Typecheck<'src> {
                     None => todo!("return expression outside of function"),
                 }
 
-                ret_ty
+                self.ty_env.get_or_add_type(Type::Never)
             },
 
             ExpressionKind::Literal(ref literal) => match literal {
