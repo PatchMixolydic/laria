@@ -20,7 +20,7 @@ pub enum UnstableFeaturesError {
 // nb. bool::default returns false
 #[derive(Clone, Copy, Debug, Default)]
 pub struct UnstableFeatures {
-    typecheck: bool,
+    pub typecheck: bool,
 }
 
 impl UnstableFeatures {

@@ -123,7 +123,7 @@ fn main() {
             info!("interpreting {}...", source_file);
         }
 
-        let script = compile_for_vm(source_path);
+        let script = compile_for_vm(source_path, args.unstable_features);
         let mut vm = VM::new(script, args.trace_execution);
 
         loop {

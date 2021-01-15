@@ -25,10 +25,11 @@ use std::{
 
 pub use lower::lower_to_vm;
 use parser::ast;
+use unstable_features::compiler::UnstableFeatures;
 
 /// Parses a script, validates it, and lowers it for use with the VM.
 /// This currently aborts on errors, but this will change in the future.
-pub fn compile_for_vm(filename: impl AsRef<Path>) -> laria_vm::Script {
+pub fn compile_for_vm(filename: impl AsRef<Path>, features: UnstableFeatures) -> laria_vm::Script {
     let filename = filename.as_ref();
     let mut file = match File::open(filename) {
         Ok(res) => BufReader::new(res),
@@ -67,9 +68,11 @@ pub fn compile_for_vm(filename: impl AsRef<Path>) -> laria_vm::Script {
         Err(_) => exit(2),
     };
 
-    // TODO: consume the AST once `lower_to_vm`
-    // is modified to consume IR
-    hir::validate(ast.clone(), &source);
+    if features.typecheck {
+        // TODO: consume the AST once `lower_to_vm`
+        // is modified to consume IR
+        hir::validate(ast.clone(), &source);
+    }
 
     lower_to_vm::lower_script(ast)
 }
