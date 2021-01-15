@@ -249,7 +249,8 @@ impl<'src> Parser<'src> {
             return Err(ParseError::TooManyArgsOnFnDef);
         }
 
-        Ok(FunctionDecl::new(fn_name, args, header_span))
+        // TODO: parse return type
+        Ok(FunctionDecl::new(fn_name, args, None, header_span))
     }
 
     fn parse_extern_fn(&mut self) -> Result<ExternFn, ParseError> {

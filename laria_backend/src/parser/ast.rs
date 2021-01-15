@@ -39,14 +39,21 @@ impl fmt::Display for Script {
 pub struct FunctionDecl {
     pub name: String,
     pub arguments: Vec<(String, String)>,
+    pub return_type: Option<String>,
     pub span: Span,
 }
 
 impl FunctionDecl {
-    pub fn new(name: String, arguments: Vec<(String, String)>, span: Span) -> Self {
+    pub fn new(
+        name: String,
+        arguments: Vec<(String, String)>,
+        return_type: Option<String>,
+        span: Span,
+    ) -> Self {
         Self {
             name,
             arguments,
+            return_type,
             span,
         }
     }

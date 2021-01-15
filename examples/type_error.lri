@@ -1,0 +1,7 @@
+fn main() {
+    f("hi world");
+}
+
+fn f(x: i64) {
+    print(x);
+}
