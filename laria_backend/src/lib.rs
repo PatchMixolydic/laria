@@ -1,6 +1,7 @@
 #![allow(clippy::comparison_chain)]
 #![allow(clippy::needless_doctest_main)]
 #![allow(unused)]
+#![feature(iter_intersperse)]
 #![feature(or_patterns)]
 #![feature(peekable_next_if)]
 // Got turned off by allow(unused)
@@ -8,6 +9,7 @@
 #![warn(unused_must_use)]
 
 mod errors;
+mod hir;
 mod lexer;
 mod lower;
 mod parser;
@@ -24,8 +26,9 @@ use std::{
 pub use lower::lower_to_vm;
 use parser::ast;
 
-/// Lexes and parses a file. Aborts on errors (this may be temporary).
-pub fn lex_and_parse(filename: impl AsRef<Path>) -> ast::Script {
+/// Parses a script, validates it, and lowers it for use with the VM.
+/// This currently aborts on errors, but this will change in the future.
+pub fn compile_for_vm(filename: impl AsRef<Path>) -> laria_vm::Script {
     let filename = filename.as_ref();
     let mut file = match File::open(filename) {
         Ok(res) => BufReader::new(res),
@@ -59,8 +62,14 @@ pub fn lex_and_parse(filename: impl AsRef<Path>) -> ast::Script {
         },
     };
 
-    match parser::parse(tokens, &source) {
+    let ast = match parser::parse(tokens, &source) {
         Ok(res) => res,
         Err(_) => exit(2),
-    }
+    };
+
+    // TODO: consume the AST once `lower_to_vm`
+    // is modified to consume IR
+    hir::validate(ast.clone(), &source);
+
+    lower_to_vm::lower_script(ast)
 }

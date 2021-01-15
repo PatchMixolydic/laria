@@ -1,4 +1,4 @@
-use laria_backend::{lex_and_parse, lower_to_vm, unstable_features::compiler::UnstableFeatures};
+use laria_backend::{compile_for_vm, unstable_features::compiler::UnstableFeatures};
 use laria_log::*;
 use laria_vm::vm::VM;
 use pico_args::Arguments;
@@ -116,22 +116,14 @@ fn main() {
             info!("compiling {}...", source_file)
         }
 
-        let ast = lex_and_parse(source_path);
-
-        if args.verbose {
-            debug!("ast:\n{:#?}", ast);
-        } else {
-            debug!("ast:\n{}", ast);
-        }
-
-        todo!("lower to file");
+        //let ast = compile_for_vm(source_path);
+        todo!("parse, compile, validate, lower to file");
     } else {
         if args.verbose {
             info!("interpreting {}...", source_file);
         }
 
-        let ast = lex_and_parse(source_path);
-        let script = lower_to_vm::lower_script(ast);
+        let script = compile_for_vm(source_path);
         let mut vm = VM::new(script, args.trace_execution);
 
         loop {
