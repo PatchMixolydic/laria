@@ -5,21 +5,18 @@
         {
             "comment": "macro type metavariables",
             "name": "meta.macro.metavariable.type.laria",
-            "match": "(\\$)((crate)|([A-Z][A-Za-z0-9_]*))((:)(block|expr|ident|item|lifetime|literal|meta|path?|stmt|tt|ty|vis))?",
+            "match": "(\\$)(([A-Z][A-Za-z0-9_]*))((:)(block|expr|ident|item|lifetime|literal|meta|path?|stmt|tt|ty|vis))?",
             "captures": {
                 "1": {
                     "name": "keyword.operator.macro.dollar.laria"
                 },
                 "3": {
-                    "name": "keyword.other.crate.laria"
-                },
-                "4": {
                     "name": "entity.name.type.metavariable.laria"
                 },
-                "6": {
+                "5": {
                     "name": "keyword.operator.key-value.laria"
                 },
-                "7": {
+                "6": {
                     "name": "variable.other.metavariable.specifier.laria"
                 }
             },
@@ -97,7 +94,7 @@
         },
         {
             "comment": "modules",
-            "match": "(mod)\\s+((?:r#(?!crate|[Ss]elf|super))?[a-z][A-Za-z0-9_]*)",
+            "match": "(mod)\\s+((?:r#(?![Ss]elf|super))?[a-z][A-Za-z0-9_]*)",
             "captures": {
                 "1": {
                     "name": "storage.type.laria"
@@ -192,6 +189,11 @@
                     "comment": "line comments",
                     "name": "comment.line.double-slash.laria",
                     "match": "\\s*//.*"
+                },
+                {
+                    "comment": "shebang",
+                    "name": "comment.line.shebang.laria",
+                    "match": "#![^\\[].*"
                 }
             ]
         },
@@ -432,7 +434,7 @@
                 {
                     "comment": "function/method calls with generic parameters",
                     "name": "meta.function.call.laria",
-                    "begin": "((?:r#(?!crate|[Ss]elf|super))?[A-Za-z0-9_]+)(?=\\[.*\\]\\()",
+                    "begin": "((?:r#(?![Ss]elf|super))?[A-Za-z0-9_]+)(?=\\[.*\\]\\()",
                     "beginCaptures": {
                         "1": {
                             "name": "entity.name.function.laria"

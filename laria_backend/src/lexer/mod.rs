@@ -160,15 +160,7 @@ impl<'src> Lexer<'src> {
                 self.chars.next();
 
                 match self.chars.peek() {
-                    Some((_, '/')) => {
-                        while self
-                            .chars
-                            .next_if(|(_, c)| *c != '\n' && *c != '\r')
-                            .is_some()
-                        {}
-
-                        self.one_char_token(idx, TokenKind::Whitespace)
-                    },
+                    Some((_, '/')) => Ok(Some(self.consume_line_comment())),
 
                     _ => Ok(Some(Token {
                         kind: TokenKind::Symbol(Symbol::Slash),
@@ -198,6 +190,13 @@ impl<'src> Lexer<'src> {
                 ':',
                 TokenKind::Symbol(Symbol::DoubleColon),
                 TokenKind::Symbol(Symbol::Colon),
+            ),
+
+            '#' => self.maybe_two_char(
+                idx,
+                '!',
+                TokenKind::Symbol(Symbol::PoundExcl),
+                TokenKind::Symbol(Symbol::Pound),
             ),
 
             ' ' | '\t' | '\n' | '\r' => self.one_char_token(idx, TokenKind::Whitespace),
@@ -382,12 +381,41 @@ impl<'src> Lexer<'src> {
             span,
         ))
     }
+
+    fn consume_line_comment(&mut self) -> Token {
+        while self
+            .chars
+            .next_if(|(_, c)| *c != '\n' && *c != '\r')
+            .is_some()
+        {}
+
+        Token::new(TokenKind::Whitespace, Span::empty())
+    }
 }
 
 /// Turn a source stream into a `Vec` of `Token`s
 pub fn lex(source: &str) -> Result<Vec<Token>, LexError> {
     let mut lexer = Lexer::new(source);
     let mut res = Vec::new();
+
+    // Check for a shebang
+    if let Some((_, '#')) = lexer.chars.peek() {
+        let token = lexer
+            .lex_one_token()?
+            .expect("Couldn't get token, but `peek` saw a `#`");
+
+        if token.kind == TokenKind::Symbol(Symbol::PoundExcl) {
+            match lexer.chars.peek() {
+                // Outer attribute
+                Some((_, '[')) => res.push(token),
+
+                // Shebang
+                _ => {
+                    lexer.consume_line_comment();
+                },
+            }
+        }
+    }
 
     while let Some(token) = lexer.lex_one_token()? {
         if token.kind != TokenKind::Whitespace {

@@ -110,6 +110,10 @@ pub enum Symbol {
     Caret,
     /// `%`
     Percent,
+    /// `#`
+    Pound,
+    /// `#!`
+    PoundExcl,
 }
 
 impl fmt::Display for Symbol {
@@ -140,6 +144,8 @@ impl fmt::Display for Symbol {
             Self::LessLess => write!(f, "<<"),
             Self::Caret => write!(f, "^"),
             Self::Percent => write!(f, "%"),
+            Self::Pound => write!(f, "#"),
+            Self::PoundExcl => write!(f, "#!"),
         }
     }
 }
