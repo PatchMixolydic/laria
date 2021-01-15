@@ -26,7 +26,7 @@ impl Type {
     /// requires access to a [`TypeEnvironment`].
     ///
     /// [`Display`]: std::fmt::Display
-    fn to_string(&self, ty_env: &TypeEnvironment) -> String {
+    pub(super) fn to_string(&self, ty_env: &TypeEnvironment) -> String {
         match self {
             Type::Variable(id) => format!("{{type variable #{}}}", id),
             Type::Integer => "{integer}".to_owned(),

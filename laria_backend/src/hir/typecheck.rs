@@ -69,12 +69,12 @@ impl<'src> Typecheck<'src> {
             },
 
             None => {
-                if matches!(self.ty_env.type_from_id(block.type_id), Type::Variable(_)) {
-                    // if we haven't deduced a return type at this point, it might be ()
-                    // TODO: is this right?
-                    let unit_type_id = self.ty_env.get_or_add_type(Type::unit());
-                    self.try_unify(block.type_id, unit_type_id, block.span);
-                }
+                // No return expression implies that this block implicitly
+                // returns `()`.
+                // TODO: how should expressions/statements shadowed by
+                // `return` expressions be handled?
+                let unit_type_id = self.ty_env.get_or_add_type(Type::unit());
+                self.try_unify(unit_type_id, block.type_id, block.span);
             },
         }
 

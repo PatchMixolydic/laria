@@ -1,0 +1,17 @@
+extern fn print(x: i64);
+
+fn main() -> i64 {
+    print(foo());
+
+    if false {
+        return 1;
+    } else if true {
+        return 2;
+    }
+
+    0
+}
+
+fn foo() -> i64 {
+    return return return return return!!!!!!!!!!111
+}
