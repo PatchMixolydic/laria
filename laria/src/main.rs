@@ -53,12 +53,12 @@ fn usage() -> String {
 
     format!(
         concat!(
-            "Usage: {} [options] [file]\n",
+            "Usage: {} [options] file\n",
             "Options:\n",
             "   -c, --compile - compile the input file to bytecode\n",
             "   -h, --help - view help\n",
             "   -t, --trace - trace execution of the virtual machine\n",
-            "   -U [...], --unstable-feature [...] - enable an unstable compiler feature\n",
+            "   -U feature, --unstable-feature feature - enable an unstable compiler feature\n",
             "   -v, --verbose - enable verbose output\n",
             "   -V, --version - show version\n",
         ),
