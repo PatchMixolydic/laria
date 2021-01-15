@@ -9,11 +9,11 @@
 #![warn(unused_must_use)]
 
 mod errors;
+pub mod features;
 mod hir;
 mod lexer;
 mod lower;
 mod parser;
-pub mod unstable_features;
 
 use laria_log::*;
 use std::{
@@ -23,9 +23,9 @@ use std::{
     process::exit,
 };
 
+use features::compiler::UnstableFeatures;
 pub use lower::lower_to_vm;
 use parser::ast;
-use unstable_features::compiler::UnstableFeatures;
 
 /// Parses a script, validates it, and lowers it for use with the VM.
 /// This currently aborts on errors, but this will change in the future.

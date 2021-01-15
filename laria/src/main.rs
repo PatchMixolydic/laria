@@ -1,4 +1,4 @@
-use laria_backend::{compile_for_vm, unstable_features::compiler::UnstableFeatures};
+use laria_backend::{compile_for_vm, features::compiler::UnstableFeatures};
 use laria_log::*;
 use laria_vm::vm::VM;
 use pico_args::Arguments;
