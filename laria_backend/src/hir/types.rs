@@ -35,15 +35,15 @@ impl Type {
             Type::String => "string".to_owned(),
 
             Type::Function(args_id, return_id) => {
-                let args_ty = ty_env.get_type(*args_id).to_string(ty_env);
-                let ret_ty = ty_env.get_type(*return_id).to_string(ty_env);
+                let args_ty = ty_env.type_from_id(*args_id).to_string(ty_env);
+                let ret_ty = ty_env.type_from_id(*return_id).to_string(ty_env);
                 format!("{} -> {}", args_ty, ret_ty)
             },
 
             Type::Tuple(contents) => {
                 let contents_string = contents
                     .into_iter()
-                    .map(|id| ty_env.get_type(*id).to_string(ty_env))
+                    .map(|id| ty_env.type_from_id(*id).to_string(ty_env))
                     .intersperse(", ".to_owned())
                     .collect::<String>();
 
@@ -98,13 +98,13 @@ impl<'src> TypeEnvironment<'src> {
         self.get_or_add_type(ty)
     }
 
-    /// Given a type id, get the concrete type from this environment.
-    pub(super) fn get_type(&self, id: TypeId) -> &Type {
+    /// Given a [`TypeId`], get the concrete type from this environment.
+    pub(super) fn type_from_id(&self, id: TypeId) -> &Type {
         &self.type_id_to_type[id]
     }
 
     /// Given an identifier, get the associated [`TypeId`].
-    pub(super) fn get_type_id_for_ident(&mut self, ident: &String) -> TypeId {
+    pub(super) fn type_id_for_ident(&mut self, ident: &String) -> TypeId {
         let maybe_res = self.ident_to_type_id.get(ident).copied();
 
         match maybe_res {
@@ -125,12 +125,12 @@ impl<'src> TypeEnvironment<'src> {
         second_id: TypeId,
         span: Span,
     ) -> Result<(), ()> {
-        let first_ty = self.get_type(first_id);
-        let second_ty = self.get_type(second_id);
+        let first_ty = self.type_from_id(first_id);
+        let second_ty = self.type_from_id(second_id);
         match (first_ty, second_ty) {
             (Type::Variable(_), _) => {
                 if first_ty != second_ty {
-                    self.type_id_to_type[first_id] = self.get_type(second_id).clone();
+                    self.type_id_to_type[first_id] = self.type_from_id(second_id).clone();
                 }
             },
 
@@ -172,7 +172,7 @@ impl<'src> TypeEnvironment<'src> {
             (_, _) => {
                 self.error_ctx
                     .build_error(format!(
-                        "expected {}, got {}",
+                        "expected {}, found {}",
                         second_ty.to_string(self),
                         first_ty.to_string(self)
                     ))

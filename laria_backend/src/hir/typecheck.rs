@@ -46,6 +46,7 @@ impl<'src> Typecheck<'src> {
     fn check_function(&mut self, function: &mut FunctionDef) {
         // The type environment should've been filled with the
         // arguments' idents by the lowering process
+        // TODO: handle `return` expressions
         self.check_block(&function.body);
         self.try_unify(
             function.body.type_id,
@@ -57,7 +58,6 @@ impl<'src> Typecheck<'src> {
     /// Returns the TypeId corresponding to the block's return type.
     fn check_block(&mut self, block: &Block) -> TypeId {
         for stmt in &block.statements {
-            // TODO: handle `return` expressions
             self.check_statement(stmt);
         }
 
@@ -68,7 +68,7 @@ impl<'src> Typecheck<'src> {
             },
 
             None => {
-                if matches!(self.ty_env.get_type(block.type_id), Type::Variable(_)) {
+                if matches!(self.ty_env.type_from_id(block.type_id), Type::Variable(_)) {
                     // if we haven't deduced a return type at this point, it might be ()
                     // TODO: is this right?
                     let unit_type_id = self.ty_env.get_or_add_type(Type::unit());
@@ -92,7 +92,7 @@ impl<'src> Typecheck<'src> {
                 // Unify that with the ascribed type, if any
                 self.try_unify(type_id, expr_id, expr.span);
                 // Get the type associated with the identifier
-                let ident_ty = self.ty_env.get_type_id_for_ident(ident);
+                let ident_ty = self.ty_env.type_id_for_ident(ident);
                 // ...and unify that with the ascribed type
                 self.try_unify(ident_ty, type_id, expr.span);
             },
@@ -226,7 +226,7 @@ impl<'src> Typecheck<'src> {
 
                 self.try_unify(fn_type_id, general_fn_ty_id, func.span);
 
-                match self.ty_env.get_type(fn_type_id) {
+                match self.ty_env.type_from_id(fn_type_id) {
                     Type::Function(fn_args_type_id, ret_type_id) => {
                         let fn_args_type_id = *fn_args_type_id;
                         let ret_type_id = *ret_type_id;
@@ -267,7 +267,7 @@ impl<'src> Typecheck<'src> {
                 LiteralKind::Boolean(_) => self.ty_env.get_or_add_type(Type::Boolean),
             },
 
-            ExpressionKind::Identifier(ref ident) => self.ty_env.get_type_id_for_ident(ident),
+            ExpressionKind::Identifier(ref ident) => self.ty_env.type_id_for_ident(ident),
         };
 
         self.try_unify(expr.type_id, res, expr.span);

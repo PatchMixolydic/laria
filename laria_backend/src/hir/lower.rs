@@ -66,7 +66,7 @@ impl<'src> LowerAst<'src> {
             .ty_env
             .get_or_add_type(Type::Function(args_list_type, return_type));
 
-        let type_id_for_fn_name = self.ty_env.get_type_id_for_ident(&header.name);
+        let type_id_for_fn_name = self.ty_env.type_id_for_ident(&header.name);
         // Should be infallible since a variable should've just been created
         // (nb. will only be true when paths are added)
         self.ty_env
