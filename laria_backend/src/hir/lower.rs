@@ -72,7 +72,7 @@ impl<'src> LowerAst<'src> {
         self.ty_env
             .unify(type_id_for_fn_name, fn_type, header.span)
             .expect(&format!(
-                "Encountered type bug while lowering {}",
+                "Problem unifying types while lowering {}",
                 header.name
             ));
 

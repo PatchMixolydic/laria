@@ -67,7 +67,10 @@ impl fmt::Display for FunctionDecl {
             write!(f, "{}: {},", argument, ty)?;
         }
 
-        write!(f, ")")
+        match &self.return_type {
+            Some(return_type) => write!(f, ") -> {}", return_type),
+            None => write!(f, ")"),
+        }
     }
 }
 

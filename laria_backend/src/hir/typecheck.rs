@@ -63,6 +63,11 @@ impl<'src> Typecheck<'src> {
         if let Some(return_expr) = &block.return_expr {
             self.check_expression(return_expr.as_ref());
             self.try_unify(block.type_id, return_expr.type_id, return_expr.span);
+        } else {
+            // TODO: this doesn't seem right; `return` expressions can make
+            // the function not return unit...
+            let unit_type_id = self.ty_env.get_or_add_type(Type::unit());
+            self.try_unify(block.type_id, unit_type_id, block.span);
         }
 
         block.type_id

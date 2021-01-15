@@ -249,8 +249,15 @@ impl<'src> Parser<'src> {
             return Err(ParseError::TooManyArgsOnFnDef);
         }
 
-        // TODO: parse return type
-        Ok(FunctionDecl::new(fn_name, args, None, header_span))
+        let return_type = if self.eat(Expected::Symbol(Symbol::Arrow)) {
+            // We have a return type
+            // TODO: this should be a path
+            Some(self.expect_item(Expected::Ident)?.kind.unwrap_ident())
+        } else {
+            None
+        };
+
+        Ok(FunctionDecl::new(fn_name, args, return_type, header_span))
     }
 
     fn parse_extern_fn(&mut self) -> Result<ExternFn, ParseError> {

@@ -1,7 +1,8 @@
 fn main() {
     f("hi world");
+    1
 }
 
-fn f(x: i64) {
+fn f(x: i64) -> i64 {
     print(x);
 }
