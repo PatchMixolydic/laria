@@ -1,0 +1,8 @@
+extern fn print(msg: String);
+extern fn abort(msg: String) -> never;
+
+fn main() {
+    print("Hello");
+    let x: i32 = abort("Goodbye");
+    print("Can anyone hear me?");
+}

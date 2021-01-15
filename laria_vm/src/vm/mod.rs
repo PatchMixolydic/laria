@@ -1,5 +1,7 @@
 pub mod tick;
 
+use core::panic;
+use laria_log::*;
 use std::str::Utf8Error;
 use thiserror::Error;
 
@@ -57,6 +59,16 @@ fn native_print(stack: &mut Vec<Value>) -> Value {
     Value::Unit
 }
 
+fn native_abort(stack: &mut Vec<Value>) -> Value {
+    match stack.pop() {
+        Some(val) => error!("vm aborted: {}", val),
+        None => error!("vm aborted"),
+    }
+
+    // TODO: should this unwind?
+    std::process::exit(3);
+}
+
 impl VM {
     pub fn new(script: Script, trace_execution: bool) -> Self {
         let mut stack_frames = Vec::with_capacity(16);
@@ -73,6 +85,7 @@ impl VM {
 
         // TODO: temp
         res.set_global("print", Value::NativeFn(native_print));
+        res.set_global("abort", Value::NativeFn(native_abort));
         res
     }
 

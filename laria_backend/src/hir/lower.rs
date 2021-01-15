@@ -45,6 +45,8 @@ impl<'src> LowerAst<'src> {
             "bool" => self.ty_env.get_or_add_type(Type::Boolean),
             "f32" | "f64" => self.ty_env.get_or_add_type(Type::Float),
             "String" => self.ty_env.get_or_add_type(Type::String),
+            // TODO: should be `!`
+            "never" => self.ty_env.get_or_add_type(Type::Never),
             "()" => self.ty_env.get_or_add_type(Type::unit()),
             _ => todo!("unknown type `{}`", name),
         }

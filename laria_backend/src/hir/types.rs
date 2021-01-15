@@ -11,6 +11,11 @@ pub(super) enum Type {
     Boolean,
     Float,
     String,
+    /// The never type, `!`. Conceptually, this is
+    /// the [bottom type].
+    ///
+    /// [bottom type]: https://en.wikipedia.org/wiki/Bottom_type
+    Never,
     Function(TypeId, TypeId),
     Tuple(Vec<TypeId>),
 }
@@ -33,6 +38,7 @@ impl Type {
             Type::Boolean => "bool".to_owned(),
             Type::Float => "{float}".to_owned(),
             Type::String => "string".to_owned(),
+            Type::Never => "!".to_owned(),
 
             Type::Function(args_id, return_id) => {
                 let args_ty = ty_env.type_from_id(*args_id).to_string(ty_env);
@@ -142,6 +148,10 @@ impl<'src> TypeEnvironment<'src> {
             | (Type::Boolean, Type::Boolean)
             | (Type::Float, Type::Float)
             | (Type::String, Type::String) => {},
+
+            // `!` subtypes everything, so any type should unify to `!`
+            (_, Type::Never) => self.type_id_to_type[first_id] = Type::Never,
+            (Type::Never, _) => self.type_id_to_type[second_id] = Type::Never,
 
             (Type::Function(params_id_1, ret_id_1), Type::Function(params_id_2, ret_id_2)) => {
                 // These variables are needed to copy the type ids.
