@@ -199,6 +199,12 @@ impl<'src> LowerAst<'src> {
             },
 
             ast::ExpressionKind::PartialApp(_, _) => todo!("partial app"),
+
+            ast::ExpressionKind::Return(expr) => {
+                let expr = Box::new(self.lower_expression(*expr));
+                hir_tree::ExpressionKind::Return(expr)
+            },
+
             ast::ExpressionKind::Literal(literal) => hir_tree::ExpressionKind::Literal(literal),
             ast::ExpressionKind::Identifier(ident) => hir_tree::ExpressionKind::Identifier(ident),
             ast::ExpressionKind::Empty => todo!("get rid of empty?"),

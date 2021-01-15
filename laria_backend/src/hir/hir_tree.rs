@@ -239,6 +239,9 @@ pub(super) enum ExpressionKind {
     /// A function call, ex. `factorial(4)`.
     FnCall(Box<Expression>, Vec<Expression>),
 
+    /// A return expression, ex. `return 100`
+    Return(Box<Expression>),
+
     /// A literal, such as `4` or `"Hello"`.
     Literal(LiteralKind),
 

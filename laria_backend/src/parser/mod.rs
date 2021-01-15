@@ -394,9 +394,7 @@ impl<'src> Parser<'src> {
         let mut res = if delimiters.iter().any(|d| d.matches(&next_token_kind)) {
             // oh!
             Expression::new(ExpressionKind::Empty, Span::empty())
-        } else if next_token_kind == TokenKind::OpenDelim(DelimKind::Paren) {
-            self.bump();
-
+        } else if self.eat(Expected::OpenDelim(DelimKind::Paren)) {
             // TODO: tuples
             let expr = {
                 match self.parse_expression(&[Expected::CloseDelim(DelimKind::Paren)], 0)? {
@@ -413,6 +411,10 @@ impl<'src> Parser<'src> {
             span.grow_to_contain(&expr.span);
 
             expr
+        } else if self.eat(Expected::Keyword(Keyword::Return)) {
+            let expr = Box::new(self.parse_expression(delimiters, min_bind_power)?);
+            span.grow_to_contain(&expr.span);
+            Expression::new(ExpressionKind::Return(expr), span)
         } else if let Some(op) = self.token_as_unary_op(&next_token_kind) {
             // Throw away the operator
             self.bump().expect("expected token to exist");

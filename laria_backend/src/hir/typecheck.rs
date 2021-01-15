@@ -47,23 +47,24 @@ impl<'src> Typecheck<'src> {
         // The type environment should've been filled with the
         // arguments' idents by the lowering process
         // TODO: handle `return` expressions
-        self.check_block(&function.body);
         self.try_unify(
             function.body.type_id,
             function.header.ret_type,
             function.body.span,
         );
+
+        self.check_block(&function.body, Some(function.header.ret_type));
     }
 
     /// Returns the TypeId corresponding to the block's return type.
-    fn check_block(&mut self, block: &Block) -> TypeId {
+    fn check_block(&mut self, block: &Block, fn_return_type: Option<TypeId>) -> TypeId {
         for stmt in &block.statements {
-            self.check_statement(stmt);
+            self.check_statement(stmt, fn_return_type);
         }
 
         match &block.return_expr {
             Some(return_expr) => {
-                self.check_expression(return_expr.as_ref());
+                self.check_expression(return_expr.as_ref(), fn_return_type);
                 self.try_unify(block.type_id, return_expr.type_id, return_expr.span);
             },
 
@@ -80,15 +81,15 @@ impl<'src> Typecheck<'src> {
         block.type_id
     }
 
-    fn check_statement(&mut self, stmt: &Statement) {
+    fn check_statement(&mut self, stmt: &Statement, fn_return_type: Option<TypeId>) {
         match stmt.kind {
             StatementKind::Expression(ref expr) => {
-                self.check_expression(expr);
+                self.check_expression(expr, fn_return_type);
             },
 
             StatementKind::Declaration((ref ident, type_id), ref expr) => {
                 // Typecheck the right hand side
-                let expr_id = self.check_expression(expr);
+                let expr_id = self.check_expression(expr, fn_return_type);
                 // Unify that with the ascribed type, if any
                 self.try_unify(type_id, expr_id, expr.span);
                 // Get the type associated with the identifier
@@ -100,22 +101,26 @@ impl<'src> Typecheck<'src> {
     }
 
     /// Returns the TypeId corresponding to the expression's return type.
-    fn check_expression(&mut self, expr: &Expression) -> TypeId {
+    /// `fn_return_type` holds the current function's return type if this
+    /// expression is inside of a function. This is used for type checking
+    /// `return` expressions.
+    // TODO: try to find a better method for checking `return` expressions
+    fn check_expression(&mut self, expr: &Expression, fn_return_type: Option<TypeId>) -> TypeId {
         let res = match expr.kind {
             ExpressionKind::If {
                 ref cond,
                 ref then,
                 ref otherwise,
             } => {
-                self.check_expression(cond);
+                self.check_expression(cond, fn_return_type);
                 let bool_id = self.ty_env.get_or_add_type(Type::Boolean);
                 self.try_unify(cond.type_id, bool_id, cond.span);
 
-                let then_ret_ty_id = self.check_block(&then.0);
+                let then_ret_ty_id = self.check_block(&then.0, fn_return_type);
                 self.try_unify(then.1, then_ret_ty_id, then.0.span_for_return_expr());
 
                 if let Some(otherwise) = otherwise {
-                    let else_ret_ty_id = self.check_block(&otherwise.0);
+                    let else_ret_ty_id = self.check_block(&otherwise.0, fn_return_type);
                     self.try_unify(
                         otherwise.1,
                         else_ret_ty_id,
@@ -135,14 +140,14 @@ impl<'src> Typecheck<'src> {
                     self.try_unify(count.type_id, int_ty, count.span);
                 }
 
-                self.check_block(body);
+                self.check_block(body, fn_return_type);
                 body.type_id
             },
 
             ExpressionKind::While(ref cond, ref body) => {
                 let bool_ty = self.ty_env.get_or_add_type(Type::Boolean);
                 self.try_unify(cond.type_id, bool_ty, cond.span);
-                self.check_block(body);
+                self.check_block(body, fn_return_type);
 
                 let unit_type_id = self.ty_env.get_or_add_type(Type::unit());
                 self.try_unify(body.type_id, unit_type_id, body.span_for_return_expr());
@@ -150,15 +155,15 @@ impl<'src> Typecheck<'src> {
             },
 
             ExpressionKind::Block(ref block) => {
-                self.check_block(block);
+                self.check_block(block, fn_return_type);
                 block.type_id
             },
 
             ExpressionKind::BinaryOperation(ref lhs, op, ref rhs) => {
                 // TODO: this should probably do something with traits
                 // TODO: check float + float, int + int
-                self.check_expression(lhs);
-                self.check_expression(rhs);
+                self.check_expression(lhs, fn_return_type);
+                self.check_expression(rhs, fn_return_type);
                 self.try_unify(lhs.type_id, rhs.type_id, rhs.span);
 
                 match op {
@@ -207,15 +212,15 @@ impl<'src> Typecheck<'src> {
                     },
 
                     UnaryOperator::Not => {
-                        // TODO: unify exper with boolean, integer
+                        // TODO: unify expr with boolean, integer
                     },
                 }
 
-                self.check_expression(expr)
+                self.check_expression(expr, fn_return_type)
             },
 
             ExpressionKind::FnCall(ref func, ref args) => {
-                let fn_type_id = self.check_expression(func);
+                let fn_type_id = self.check_expression(func, fn_return_type);
 
                 // make sure that `func` is a function
                 let general_fn_type = Type::Function(
@@ -236,7 +241,7 @@ impl<'src> Typecheck<'src> {
                             let mut tuple_args = Vec::with_capacity(args.len());
 
                             for arg in args {
-                                self.check_expression(arg);
+                                self.check_expression(arg, fn_return_type);
                                 tuple_args.push(arg.type_id);
                             }
 
@@ -258,6 +263,18 @@ impl<'src> Typecheck<'src> {
                     // unreachable due to unification
                     _ => unreachable!(),
                 }
+            },
+
+            ExpressionKind::Return(ref ret_expr) => {
+                // TODO: `return: !`
+                let ret_ty = self.check_expression(ret_expr, fn_return_type);
+
+                match fn_return_type {
+                    Some(fn_ret_ty_id) => self.try_unify(ret_ty, fn_ret_ty_id, expr.span),
+                    None => todo!("return expression outside of function"),
+                }
+
+                ret_ty
             },
 
             ExpressionKind::Literal(ref literal) => match literal {

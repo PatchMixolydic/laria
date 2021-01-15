@@ -432,6 +432,11 @@ impl Lower {
 
             ExpressionKind::PartialApp(_, _) => todo!("partial app"),
 
+            ExpressionKind::Return(expr) => {
+                self.lower_expression(*expr);
+                self.instructions.push(Instruction::Return as u8);
+            },
+
             ExpressionKind::Identifier(id) => {
                 if self.try_resolve_local(&id) {
                     self.instructions.push(Instruction::GetLocal as u8);

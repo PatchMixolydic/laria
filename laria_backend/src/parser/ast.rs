@@ -312,6 +312,9 @@ pub enum ExpressionKind {
     /// A partial application, ex. `pow(?, 2)`.
     PartialApp(Box<Expression>, Vec<PartialArg>),
 
+    /// A return expression, ex. `return 100`
+    Return(Box<Expression>),
+
     /// A literal, such as `4` or `"Hello"`.
     Literal(LiteralKind),
 
@@ -390,6 +393,8 @@ impl fmt::Display for Expression {
 
                 write!(f, ")")
             },
+
+            ExpressionKind::Return(expr) => write!(f, "return {}", expr),
 
             ExpressionKind::Literal(literal) => write!(f, "{}", literal),
             ExpressionKind::Identifier(ident) => write!(f, "{}", ident),

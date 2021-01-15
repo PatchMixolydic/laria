@@ -1,5 +1,6 @@
 fn main() {
     f("hi world");
+    return 6.0;
     1
 }
 
@@ -10,3 +11,5 @@ fn f(x: i64) -> i64 {
         "!"
     }
 }
+
+fn g() -> i64 {}
