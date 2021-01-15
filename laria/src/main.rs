@@ -1,9 +1,10 @@
-use laria_backend::{lex_and_parse, lower_to_vm};
+use laria_backend::{lex_and_parse, lower_to_vm, unstable_features::compiler::UnstableFeatures};
 use laria_log::*;
 use laria_vm::vm::VM;
 use pico_args::Arguments;
 use rustc_version_runtime::version_meta;
 use std::{
+    convert::TryFrom,
     env::current_exe,
     path::{Path, PathBuf},
     process::exit,
@@ -17,9 +18,33 @@ struct Args {
     compile: bool,
     help: bool,
     trace_execution: bool,
+    unstable_features: UnstableFeatures,
     verbose: bool,
     version: bool,
     source_file: Option<String>,
+}
+
+fn process_args() -> Result<Args, pico_args::Error> {
+    let mut args = Arguments::from_env();
+    let feature_strings = args.values_from_str(["-U", "--unstable-feature"])?;
+    let unstable_features = match UnstableFeatures::try_from(feature_strings) {
+        Ok(res) => res,
+
+        Err(err) => {
+            error!("{}", err);
+            exit(1);
+        },
+    };
+
+    Ok(Args {
+        compile: args.contains(["-c", "--compile"]),
+        help: args.contains(["-h", "--help"]),
+        trace_execution: args.contains(["-t", "--trace"]),
+        verbose: args.contains(["-v", "--verbose"]),
+        version: args.contains(["-V", "--version"]),
+        unstable_features,
+        source_file: args.free_from_str()?,
+    })
 }
 
 fn usage() -> String {
@@ -31,26 +56,14 @@ fn usage() -> String {
             "Usage: {} [options] [file]\n",
             "Options:\n",
             "   -c, --compile - compile the input file to bytecode\n",
-            "   -h, --help    - view help\n",
-            "   -t, --trace   - trace execution of the virtual machine\n",
+            "   -h, --help - view help\n",
+            "   -t, --trace - trace execution of the virtual machine\n",
+            "   -U [...], --unstable-feature [...] - enable an unstable compiler feature\n",
             "   -v, --verbose - enable verbose output\n",
             "   -V, --version - show version\n",
         ),
         filename
     )
-}
-
-fn process_args() -> Result<Args, pico_args::Error> {
-    let mut args = Arguments::from_env();
-
-    Ok(Args {
-        compile: args.contains(["-c", "--compile"]),
-        help: args.contains(["-h", "--help"]),
-        trace_execution: args.contains(["-t", "--trace"]),
-        verbose: args.contains(["-v", "--verbose"]),
-        version: args.contains(["-V", "--version"]),
-        source_file: args.free_from_str()?,
-    })
 }
 
 fn main() {

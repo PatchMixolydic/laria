@@ -11,6 +11,7 @@ mod errors;
 mod lexer;
 mod lower;
 mod parser;
+pub mod unstable_features;
 
 use laria_log::*;
 use std::{
