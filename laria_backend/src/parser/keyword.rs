@@ -18,6 +18,7 @@ pub enum Keyword {
     Struct,
     Enum,
     Yield,
+    Match,
 }
 
 impl Keyword {
@@ -41,6 +42,7 @@ impl Keyword {
             "struct" => Some(Self::Struct),
             "enum" => Some(Self::Enum),
             "yield" => Some(Self::Yield),
+            "match" => Some(Self::Match),
             _ => None,
         }
     }
@@ -65,6 +67,7 @@ impl Keyword {
             Keyword::Struct => "struct",
             Keyword::Enum => "enum",
             Keyword::Yield => "yield",
+            Keyword::Match => "match",
         }
     }
 }
