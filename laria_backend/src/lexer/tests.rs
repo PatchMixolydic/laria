@@ -149,6 +149,39 @@ fn lex_comment() {
     );
 }
 
+#[test]
+fn lex_shebang_and_attribute() {
+    // The backslash ensures that `#!/usr/local/bin/laria`
+    // is on the first line
+    let mut res = lex("\
+        #!/usr/local/bin/laria
+        #![feature(feature_gates)]
+        #!/not/a/shebang
+    ")
+    .expect("Expected a successful lex")
+    .into_iter();
+
+    println!("{:?}", res);
+
+    assert_lex_result!(
+        res,
+        TokenKind::Symbol(Symbol::PoundExcl),
+        TokenKind::OpenDelim(DelimKind::Bracket),
+        TokenKind::IdentOrKeyword("feature".into()),
+        TokenKind::OpenDelim(DelimKind::Paren),
+        TokenKind::IdentOrKeyword("feature_gates".into()),
+        TokenKind::CloseDelim(DelimKind::Paren),
+        TokenKind::CloseDelim(DelimKind::Bracket),
+        TokenKind::Symbol(Symbol::PoundExcl),
+        TokenKind::Symbol(Symbol::Slash),
+        TokenKind::IdentOrKeyword("not".into()),
+        TokenKind::Symbol(Symbol::Slash),
+        TokenKind::IdentOrKeyword("a".into()),
+        TokenKind::Symbol(Symbol::Slash),
+        TokenKind::IdentOrKeyword("shebang".into()),
+    );
+}
+
 proptest! {
     /// Inspired by proptest's README
     #[test]
