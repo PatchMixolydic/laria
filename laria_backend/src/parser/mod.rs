@@ -316,13 +316,22 @@ impl<'src> Parser<'src> {
                 Ok(StatementOrExpr::Statement(block_like.into()))
             }
         } else {
-            let expr = self.parse_expression(
+            let maybe_expr = self.parse_expression(
                 &[
                     Expected::Symbol(Symbol::Semicolon),
                     Expected::CloseDelim(DelimKind::Brace),
                 ],
                 0,
             )?;
+
+            let expr = match maybe_expr {
+                Some(res) => res,
+
+                None => {
+                    // TODO: unit
+                    Expression::new(ExpressionKind::Block(Block::new()), Span::empty())
+                },
+            };
 
             let mut span = expr.span;
 
@@ -353,13 +362,18 @@ impl<'src> Parser<'src> {
         };
 
         self.expect_item(Expected::Symbol(Symbol::SingleEquals))?;
-        let expr = self.parse_expression(&[Expected::Symbol(Symbol::Semicolon)], 0)?;
+        let maybe_expr = self.parse_expression(&[Expected::Symbol(Symbol::Semicolon)], 0)?;
 
         let semicolon_span = self.expect_item(Expected::Symbol(Symbol::Semicolon))?.span;
         span.grow_to_contain(&semicolon_span);
 
-        match expr.kind {
-            ExpressionKind::Empty => {
+        match maybe_expr {
+            Some(expr) => Ok(Statement::new(
+                StatementKind::Declaration((name, ty), expr),
+                span,
+            )),
+
+            None => {
                 self.error_ctx
                     .build_error("expected an expression, found `;`")
                     .span_label(semicolon_span, "expected an expression")
@@ -369,11 +383,6 @@ impl<'src> Parser<'src> {
                     Symbol::Semicolon,
                 )))
             },
-
-            _ => Ok(Statement::new(
-                StatementKind::Declaration((name, ty), expr),
-                span,
-            )),
         }
     }
 
@@ -385,7 +394,7 @@ impl<'src> Parser<'src> {
         &mut self,
         delimiters: &[Expected],
         min_bind_power: u8,
-    ) -> Result<Expression, ParseError> {
+    ) -> Result<Option<Expression>, ParseError> {
         let (next_token_kind, mut span) = match self.tokens.peek() {
             Some(token) => (token.kind.clone(), token.span),
             None => return Err(self.unexpected()),
@@ -393,35 +402,41 @@ impl<'src> Parser<'src> {
 
         let mut res = if delimiters.iter().any(|d| d.matches(&next_token_kind)) {
             // oh!
-            Expression::new(ExpressionKind::Empty, Span::empty())
+            return Ok(None);
         } else if self.eat(Expected::OpenDelim(DelimKind::Paren)) {
             // TODO: tuples
             let expr = {
                 match self.parse_expression(&[Expected::CloseDelim(DelimKind::Paren)], 0)? {
-                    Expression {
-                        kind: ExpressionKind::Empty,
-                        ..
-                    } => todo!("unit?"),
-
-                    res => res,
+                    Some(res) => res,
+                    None => todo!("unit?"),
                 }
             };
 
-            self.expect_item(Expected::CloseDelim(DelimKind::Paren))?;
-            span.grow_to_contain(&expr.span);
+            let close_paren_span = self
+                .expect_item(Expected::CloseDelim(DelimKind::Paren))?
+                .span;
+            span.grow_to_contain(&close_paren_span);
 
             expr
         } else if self.eat(Expected::Keyword(Keyword::Return)) {
-            let expr = Box::new(self.parse_expression(delimiters, min_bind_power)?);
+            let expr = match self.parse_expression(delimiters, min_bind_power)? {
+                Some(res) => Box::new(res),
+                None => return Err(self.unexpected()),
+            };
+
             span.grow_to_contain(&expr.span);
             Expression::new(ExpressionKind::Return(expr), span)
         } else if let Some(op) = self.token_as_unary_op(&next_token_kind) {
             // Throw away the operator
             self.bump().expect("expected token to exist");
             let min_bind_power = self.bind_power_for_unary_op(&op);
-            let expr = self.parse_expression(delimiters, min_bind_power)?;
-            span.grow_to_contain(&expr.span);
 
+            let expr = match self.parse_expression(delimiters, min_bind_power)? {
+                Some(res) => res,
+                None => return Err(self.unexpected()),
+            };
+
+            span.grow_to_contain(&expr.span);
             Expression::new(ExpressionKind::UnaryOperation(op, Box::new(expr)), span)
         } else if self.check_block_like_expr_next() {
             let expr = self.parse_block_like_expr()?;
@@ -439,7 +454,6 @@ impl<'src> Parser<'src> {
             };
 
             span.grow_to_contain(&literal_span);
-
             Expression::new(ExpressionKind::Literal(literal_kind), span)
         } else if self.check_next(Expected::Ident) {
             let (ident, ident_span) = match self.bump() {
@@ -452,7 +466,6 @@ impl<'src> Parser<'src> {
             };
 
             span.grow_to_contain(&ident_span);
-
             Expression::new(ExpressionKind::Identifier(ident), span)
         } else {
             return Err(self.unexpected());
@@ -477,7 +490,7 @@ impl<'src> Parser<'src> {
                 // Let's eat the arguments
                 let mut args = Vec::new();
                 while !self.check_next(Expected::CloseDelim(DelimKind::Paren)) {
-                    let expr = self.parse_expression(
+                    let maybe_expr = self.parse_expression(
                         &[
                             Expected::CloseDelim(DelimKind::Paren),
                             Expected::Symbol(Symbol::Comma),
@@ -485,8 +498,14 @@ impl<'src> Parser<'src> {
                         0,
                     )?;
 
-                    self.eat(Expected::Symbol(Symbol::Comma));
-                    args.push(expr);
+                    match maybe_expr {
+                        Some(expr) => {
+                            self.eat(Expected::Symbol(Symbol::Comma));
+                            args.push(expr);
+                        },
+
+                        None => return Err(self.unexpected()),
+                    }
                 }
 
                 let close_paren = self.expect_item(Expected::CloseDelim(DelimKind::Paren))?;
@@ -508,14 +527,12 @@ impl<'src> Parser<'src> {
             }
 
             self.bump();
-            let rhs = self.parse_expression(delimiters, right_bind_power)?;
-            span.grow_to_contain(&rhs.span);
+            let rhs = match self.parse_expression(delimiters, right_bind_power)? {
+                Some(res) => res,
+                None => return Err(self.unexpected()),
+            };
 
-            // Empty expressions cannot appear on the right hand side
-            // of a binary operator
-            if let ExpressionKind::Empty = rhs.kind {
-                return Err(self.unexpected());
-            }
+            span.grow_to_contain(&rhs.span);
 
             res = Expression::new(
                 ExpressionKind::BinaryOperation(Box::new(res), operator, Box::new(rhs)),
@@ -523,7 +540,7 @@ impl<'src> Parser<'src> {
             );
         }
 
-        Ok(res)
+        Ok(Some(res))
     }
 
     /// Returns `true` if the next item can be parsed as a `BlockLikeExpr`.
@@ -558,10 +575,9 @@ impl<'src> Parser<'src> {
         let mut if_span = self.expect_item(Expected::Keyword(Keyword::If))?.span;
 
         let cond = match self.parse_expression(&[Expected::OpenDelim(DelimKind::Brace)], 0)? {
-            Expression {
-                kind: ExpressionKind::Empty,
-                ..
-            } => {
+            Some(res) => res,
+
+            None => {
                 self.error_ctx
                     .build_error_span(if_span, "`if` condition cannot be empty")
                     .emit();
@@ -570,8 +586,6 @@ impl<'src> Parser<'src> {
                     DelimKind::Brace,
                 )));
             },
-
-            res => res,
         };
 
         let then = self.parse_block()?;
@@ -615,10 +629,9 @@ impl<'src> Parser<'src> {
         let mut span = self.expect_item(Expected::Keyword(Keyword::While))?.span;
 
         let cond = match self.parse_expression(&[Expected::OpenDelim(DelimKind::Brace)], 0)? {
-            Expression {
-                kind: ExpressionKind::Empty,
-                ..
-            } => {
+            Some(res) => res,
+
+            None => {
                 self.error_ctx
                     .build_error_span(span, "`while` condition cannot be empty")
                     .help("for an infinite loop, try using `loop { ... }`")
@@ -628,8 +641,6 @@ impl<'src> Parser<'src> {
                     DelimKind::Brace,
                 )));
             },
-
-            res => res,
         };
 
         let body = self.parse_block()?;
@@ -644,14 +655,9 @@ impl<'src> Parser<'src> {
     fn parse_loop_expr(&mut self) -> Result<Expression, ParseError> {
         let mut span = self.expect_item(Expected::Keyword(Keyword::Loop))?.span;
 
-        let loop_count = match self.parse_expression(&[Expected::OpenDelim(DelimKind::Brace)], 0)? {
-            Expression {
-                kind: ExpressionKind::Empty,
-                ..
-            } => None,
-
-            res => Some(Box::new(res)),
-        };
+        let loop_count = self
+            .parse_expression(&[Expected::OpenDelim(DelimKind::Brace)], 0)?
+            .map(Box::new);
 
         let body = self.parse_block()?;
         span.grow_to_contain(&body.span);

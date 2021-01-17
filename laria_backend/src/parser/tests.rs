@@ -86,7 +86,8 @@ fn associative() {
 
     let res = parser
         .parse_expression(&[Expected::Symbol(Symbol::Semicolon)], 0)
-        .expect("Expected a successful parse");
+        .expect("Expected a successful parse")
+        .expect("Expected an expression");
 
     // building such an ast by hand would be annoying
     assert_eq!(res.to_string(), "(((1 * 2) + (3 / 4)) - (5 * (6 - 7)))");
@@ -114,7 +115,8 @@ fn as_cast() {
 
     let res = parser
         .parse_expression(&[Expected::Symbol(Symbol::Semicolon)], 0)
-        .expect("Expected a successful parse");
+        .expect("Expected a successful parse")
+        .expect("Expected an expression");
 
     assert!(matches!(
         res.kind,
@@ -139,7 +141,8 @@ fn fn_call() {
 
     let res = parser
         .parse_expression(&[Expected::Symbol(Symbol::Semicolon)], 0)
-        .expect("Expected a successful parse");
+        .expect("Expected a successful parse")
+        .expect("Expected an expression");
 
     match res.kind {
         ExpressionKind::FnCall(name, args) => {
@@ -157,7 +160,8 @@ fn fn_call_in_expr() {
 
     let res = parser
         .parse_expression(&[Expected::Symbol(Symbol::Semicolon)], 0)
-        .expect("Expected a successful parse");
+        .expect("Expected a successful parse")
+        .expect("Expected an expression");
 
     assert_eq!(res.to_string(), "((3 + f()) + (45 / 20))");
 }
@@ -168,7 +172,8 @@ fn unary_op_precedence() {
 
     let res = parser
         .parse_expression(&[Expected::Symbol(Symbol::Semicolon)], 0)
-        .expect("Expected a successful parse");
+        .expect("Expected a successful parse")
+        .expect("Expected an expression");
 
     assert_eq!(res.to_string(), "(-(4 + (8 / 2)) == -8)");
 }

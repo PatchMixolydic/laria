@@ -320,9 +320,6 @@ pub enum ExpressionKind {
 
     /// An identifier, ex. `foo`.
     Identifier(String),
-
-    /// An empty expression, as in the statement `;`.
-    Empty,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -398,7 +395,6 @@ impl fmt::Display for Expression {
 
             ExpressionKind::Literal(literal) => write!(f, "{}", literal),
             ExpressionKind::Identifier(ident) => write!(f, "{}", ident),
-            ExpressionKind::Empty => Ok(()),
         }
     }
 }

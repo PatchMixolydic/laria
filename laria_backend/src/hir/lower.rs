@@ -209,7 +209,6 @@ impl<'src> LowerAst<'src> {
 
             ast::ExpressionKind::Literal(literal) => hir_tree::ExpressionKind::Literal(literal),
             ast::ExpressionKind::Identifier(ident) => hir_tree::ExpressionKind::Identifier(ident),
-            ast::ExpressionKind::Empty => todo!("get rid of empty?"),
         };
 
         let expr_type = self.ty_env.add_new_type_variable();

@@ -446,11 +446,6 @@ impl Lower {
                     self.emit_variable_not_found(&id);
                 }
             },
-
-            ExpressionKind::Empty => {
-                self.instructions.push(Instruction::Push as u8);
-                self.instructions.push(ValueKind::Unit as u8);
-            },
         }
     }
 }
