@@ -2,9 +2,6 @@ use std::fmt;
 
 use crate::errors::Span;
 
-/// Delimiters.
-/// These are separated to allow for use of delimiters
-/// in parsers (ex. `spriteset::ast::Expected`)
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum DelimKind {
     /// `{` or `}`
