@@ -37,6 +37,7 @@ pub enum ValueKind {
     String,
     Unit,
     Byte,
+    Tuple,
 }
 
 impl fmt::Display for ValueKind {
@@ -50,10 +51,12 @@ impl fmt::Display for ValueKind {
             ValueKind::String => write!(f, "string"),
             ValueKind::Unit => write!(f, "unit"),
             ValueKind::Byte => write!(f, "byte"),
+            ValueKind::Tuple => write!(f, "tuple"),
         }
     }
 }
 
+// TODO: is this needed?
 #[derive(Clone)]
 pub enum Value {
     Subroutine(Subroutine),
@@ -64,6 +67,7 @@ pub enum Value {
     String(String),
     Unit,
     Byte(u8),
+    Tuple(Vec<Value>),
 }
 
 impl Value {
@@ -176,6 +180,27 @@ impl Value {
 
                 Ok((Value::Byte(bytes[1]), 2))
             },
+
+            ValueKind::Tuple => {
+                if bytes.len() < 2 {
+                    return Err(FromBytesError::NotEnoughBytes {
+                        expected: 2,
+                        actual: 1,
+                    });
+                }
+
+                let num_items = bytes[1];
+                let mut contents = Vec::new();
+                let mut num_bytes_read = 2;
+
+                for _ in 0..num_items {
+                    let (value, bytes) = Self::from_bytes(&bytes[num_bytes_read..])?;
+                    contents.push(value);
+                    num_bytes_read += bytes;
+                }
+
+                Ok((Value::Tuple(contents), num_bytes_read))
+            },
         }
     }
 
@@ -222,6 +247,14 @@ impl Value {
                 res.push(b);
                 Ok(res)
             },
+
+            Value::Tuple(contents) => {
+                for item in contents {
+                    res.extend_from_slice(&item.into_bytes()?);
+                }
+
+                Ok(res)
+            },
         }
     }
 
@@ -235,6 +268,7 @@ impl Value {
             Value::String(_) => ValueKind::String,
             Value::Unit => ValueKind::Unit,
             Value::Byte(_) => ValueKind::Byte,
+            Value::Tuple(_) => ValueKind::Tuple,
         }
     }
 }
@@ -244,6 +278,7 @@ impl fmt::Debug for Value {
         match self {
             Value::Subroutine(ref sub) => f.debug_tuple("Subroutine").field(sub).finish(),
 
+            // This is why we need this `Debug` impl...
             Value::NativeFn(func) => f
                 .debug_tuple("NativeFn")
                 .field(&(func as *const _))
@@ -255,6 +290,7 @@ impl fmt::Debug for Value {
             Value::String(ref s) => f.debug_tuple("String").field(s).finish(),
             Value::Unit => write!(f, "Unit"),
             Value::Byte(b) => f.debug_tuple("Byte").field(b).finish(),
+            Value::Tuple(contents) => f.debug_tuple("Tuple").field(contents).finish(),
         }
     }
 }
@@ -270,6 +306,16 @@ impl fmt::Display for Value {
             Value::String(ref s) => write!(f, "{}", s),
             Value::Unit => write!(f, "()"),
             Value::Byte(b) => write!(f, "{}", b),
+
+            Value::Tuple(contents) => {
+                write!(f, "(")?;
+
+                for item in contents {
+                    write!(f, "{}", item)?;
+                }
+
+                write!(f, ")")
+            },
         }
     }
 }

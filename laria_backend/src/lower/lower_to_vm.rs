@@ -437,7 +437,18 @@ impl Lower {
                 self.instructions.push(Instruction::Return as u8);
             },
 
-            ExpressionKind::Tuple(contents) => todo!("tuple"),
+            ExpressionKind::Tuple(contents) => {
+                // TODO: this seems like a hack
+                // we might be able to make use of type information here later
+                let arity = contents.len() as u64;
+
+                for expression in contents {
+                    self.lower_expression(expression);
+                }
+
+                self.emit_push(Value::UnsignedInt(arity));
+                self.instructions.push(Instruction::LiftIntoTuple as u8);
+            },
 
             ExpressionKind::Identifier(id) => {
                 if self.try_resolve_local(&id) {

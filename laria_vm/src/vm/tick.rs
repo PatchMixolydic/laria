@@ -686,6 +686,31 @@ impl VM {
                     None => return Err(VMError::NoSuchConstant(name))
                 }
             }),
+
+            Instruction::LiftIntoTuple => one_arg!(maybe_num_values => {
+                let num_values = match maybe_num_values {
+                    Value::UnsignedInt(res) => res as usize,
+                    _ => return Err(VMError::WrongType),
+                };
+
+                let mut tuple_contents = Vec::new();
+
+                if self.stack.len() < num_values {
+                    return Err(VMError::NotEnoughValues {
+                        expected: num_values,
+                        found: self.stack.len(),
+                    });
+                }
+
+                for _ in 0..num_values {
+                    match self.stack.pop() {
+                        Some(value) => tuple_contents.push(value),
+                        None => unreachable!(),
+                    }
+                }
+
+                self.stack.push(Value::Tuple(tuple_contents));
+            }),
         };
 
         Ok(())
