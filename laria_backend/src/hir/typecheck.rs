@@ -52,11 +52,25 @@ impl<'src> Typecheck<'src> {
         (script, self.ty_env)
     }
 
+    /// Convenience function wrapper for [`TypeEnvironment::unify`].
+    /// Emits a generic diagnostic and sets `self.failed` if unification fails.
     fn try_unify(&mut self, first_id: TypeId, second_id: TypeId, span: Span) {
-        if let Err(_) = self.ty_env.unify(first_id, second_id) {
+        if self.ty_env.unify(first_id, second_id).is_err() {
             self.emit_typical_type_error(first_id, second_id, span);
             self.failed = true;
         }
+    }
+
+    /// Similar to [`try_unify`], but doesn't emit a diagnostic.
+    ///
+    /// [`try_unify`]: Self::try_unify
+    fn try_unify_no_diag(&mut self, first_id: TypeId, second_id: TypeId) -> Result<(), ()> {
+        let res = self.ty_env.unify(first_id, second_id);
+        if res.is_err() {
+            self.failed = true;
+        }
+
+        res
     }
 
     fn check_function(&mut self, function: &mut FunctionDef) {
@@ -87,10 +101,8 @@ impl<'src> Typecheck<'src> {
             None => {
                 // No return expression implies that this block implicitly
                 // returns `()`.
-                // TODO: how should expressions/statements shadowed by
-                // `return` expressions be handled?
-                let unit_type_id = self.ty_env.get_or_add_type(Type::unit());
-                self.try_unify(unit_type_id, block.type_id, block.span);
+                // TODO: divergence
+                self.try_unify(TypeEnvironment::UNIT_ID, block.type_id, block.span);
             },
         }
 
@@ -129,8 +141,7 @@ impl<'src> Typecheck<'src> {
                 ref otherwise,
             } => {
                 self.check_expression(cond, fn_return_type);
-                let bool_id = self.ty_env.get_or_add_type(Type::Boolean);
-                self.try_unify(cond.type_id, bool_id, cond.span);
+                self.try_unify(cond.type_id, TypeEnvironment::BOOLEAN_ID, cond.span);
 
                 let then_ret_ty_id = self.check_block(&then.0, fn_return_type);
                 self.try_unify(then.1, then_ret_ty_id, then.0.span_for_return_expr());
@@ -152,8 +163,7 @@ impl<'src> Typecheck<'src> {
 
             ExpressionKind::Loop(ref maybe_count, ref body) => {
                 if let Some(count) = maybe_count {
-                    let int_ty = self.ty_env.get_or_add_type(Type::Integer);
-                    self.try_unify(count.type_id, int_ty, count.span);
+                    self.try_unify(count.type_id, TypeEnvironment::INTEGER_ID, count.span);
                 }
 
                 // TODO: infinite loops should diverge
@@ -163,12 +173,14 @@ impl<'src> Typecheck<'src> {
             },
 
             ExpressionKind::While(ref cond, ref body) => {
-                let bool_ty = self.ty_env.get_or_add_type(Type::Boolean);
-                self.try_unify(cond.type_id, bool_ty, cond.span);
+                self.try_unify(cond.type_id, TypeEnvironment::BOOLEAN_ID, cond.span);
                 self.check_block(body, fn_return_type);
 
-                let unit_type_id = self.ty_env.get_or_add_type(Type::unit());
-                self.try_unify(body.type_id, unit_type_id, body.span_for_return_expr());
+                self.try_unify(
+                    body.type_id,
+                    TypeEnvironment::UNIT_ID,
+                    body.span_for_return_expr(),
+                );
                 body.type_id
             },
 
@@ -189,20 +201,43 @@ impl<'src> Typecheck<'src> {
                     | BinaryOperator::Subtract
                     | BinaryOperator::Multiply
                     | BinaryOperator::Divide
-                    | BinaryOperator::Modulo => lhs.type_id,
+                    | BinaryOperator::Modulo => {
+                        let unify_res = self
+                            .try_unify_no_diag(lhs.type_id, TypeEnvironment::INTEGER_ID)
+                            .or_else(|_| {
+                                self.try_unify_no_diag(lhs.type_id, TypeEnvironment::FLOAT_ID)
+                            });
+
+                        if unify_res.is_err() {
+                            let lhs_type = self.ty_env.type_from_id(lhs.type_id);
+                            let rhs_type = self.ty_env.type_from_id(rhs.type_id);
+
+                            self.error_ctx
+                                .build_error_span(
+                                    expr.span,
+                                    format!(
+                                        "cannot add value of type `{}` to value of type `{}`",
+                                        lhs_type.to_string(&self.ty_env),
+                                        rhs_type.to_string(&self.ty_env)
+                                    ),
+                                )
+                                .emit();
+                        }
+
+                        lhs.type_id
+                    },
 
                     BinaryOperator::Equal
                     | BinaryOperator::NotEqual
                     | BinaryOperator::GreaterThan
                     | BinaryOperator::LessThan
                     | BinaryOperator::GreaterThanEqual
-                    | BinaryOperator::LessThanEqual => self.ty_env.get_or_add_type(Type::Boolean),
+                    | BinaryOperator::LessThanEqual => TypeEnvironment::BOOLEAN_ID,
 
                     BinaryOperator::BoolAnd | BinaryOperator::BoolOr => {
-                        let bool_type = self.ty_env.get_or_add_type(Type::Boolean);
-                        self.try_unify(lhs.type_id, bool_type, lhs.span);
-                        self.try_unify(rhs.type_id, bool_type, rhs.span);
-                        bool_type
+                        self.try_unify(lhs.type_id, TypeEnvironment::BOOLEAN_ID, lhs.span);
+                        self.try_unify(rhs.type_id, TypeEnvironment::BOOLEAN_ID, rhs.span);
+                        TypeEnvironment::BOOLEAN_ID
                     },
 
                     BinaryOperator::BitAnd
@@ -210,10 +245,9 @@ impl<'src> Typecheck<'src> {
                     | BinaryOperator::BitXor
                     | BinaryOperator::ShiftLeft
                     | BinaryOperator::ShiftRight => {
-                        let int_type = self.ty_env.get_or_add_type(Type::Integer);
-                        self.try_unify(lhs.type_id, int_type, lhs.span);
-                        self.try_unify(rhs.type_id, int_type, rhs.span);
-                        int_type
+                        self.try_unify(lhs.type_id, TypeEnvironment::INTEGER_ID, lhs.span);
+                        self.try_unify(rhs.type_id, TypeEnvironment::INTEGER_ID, rhs.span);
+                        TypeEnvironment::INTEGER_ID
                     },
 
                     BinaryOperator::Assign => lhs.type_id,
@@ -222,19 +256,38 @@ impl<'src> Typecheck<'src> {
                 }
             },
 
-            ExpressionKind::UnaryOperation(op, ref expr) => {
-                match op {
-                    UnaryOperator::Negative => {
-                        // TODO: unify expr with integer, catch error, unify
-                        // with float
-                    },
+            ExpressionKind::UnaryOperation(op, ref arg_expr) => {
+                self.check_expression(arg_expr, fn_return_type);
 
-                    UnaryOperator::Not => {
-                        // TODO: unify expr with boolean, integer
-                    },
+                let unify_res = match op {
+                    UnaryOperator::Negative => self
+                        .try_unify_no_diag(arg_expr.type_id, TypeEnvironment::INTEGER_ID)
+                        .or_else(|_| {
+                            self.try_unify_no_diag(arg_expr.type_id, TypeEnvironment::FLOAT_ID)
+                        }),
+
+                    UnaryOperator::Not => self
+                        .try_unify_no_diag(arg_expr.type_id, TypeEnvironment::BOOLEAN_ID)
+                        .or_else(|_| {
+                            self.try_unify_no_diag(arg_expr.type_id, TypeEnvironment::INTEGER_ID)
+                        }),
+                };
+
+                if unify_res.is_err() {
+                    let expr_ty = self.ty_env.type_from_id(arg_expr.type_id);
+                    self.error_ctx
+                        .build_error_span(
+                            expr.span,
+                            format!(
+                                "cannot apply unary operator `{}` to value of type `{}`",
+                                op,
+                                expr_ty.to_string(&self.ty_env)
+                            ),
+                        )
+                        .emit();
                 }
 
-                self.check_expression(expr, fn_return_type)
+                arg_expr.type_id
             },
 
             ExpressionKind::FnCall(ref func, ref args) => {
@@ -292,7 +345,7 @@ impl<'src> Typecheck<'src> {
                     None => todo!("return expression outside of function"),
                 }
 
-                self.ty_env.get_or_add_type(Type::Never)
+                TypeEnvironment::NEVER_ID
             },
 
             ExpressionKind::Tuple(ref contents) => {
@@ -309,10 +362,10 @@ impl<'src> Typecheck<'src> {
             },
 
             ExpressionKind::Literal(ref literal) => match literal {
-                LiteralKind::Integer(_) => self.ty_env.get_or_add_type(Type::Integer),
-                LiteralKind::String(_) => self.ty_env.get_or_add_type(Type::String),
-                LiteralKind::Float(_) => self.ty_env.get_or_add_type(Type::Float),
-                LiteralKind::Boolean(_) => self.ty_env.get_or_add_type(Type::Boolean),
+                LiteralKind::Integer(_) => TypeEnvironment::INTEGER_ID,
+                LiteralKind::String(_) => TypeEnvironment::STRING_ID,
+                LiteralKind::Float(_) => TypeEnvironment::FLOAT_ID,
+                LiteralKind::Boolean(_) => TypeEnvironment::BOOLEAN_ID,
             },
 
             ExpressionKind::Identifier(ref ident) => self.ty_env.type_id_for_ident(ident),

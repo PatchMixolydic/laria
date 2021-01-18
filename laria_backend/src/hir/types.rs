@@ -70,9 +70,27 @@ pub(super) struct TypeEnvironment {
 }
 
 impl TypeEnvironment {
+    // NOTE: please keep in sync with `new`
+    pub(super) const INTEGER_ID: TypeId = 0;
+    pub(super) const BOOLEAN_ID: TypeId = 1;
+    pub(super) const FLOAT_ID: TypeId = 2;
+    pub(super) const STRING_ID: TypeId = 3;
+    pub(super) const NEVER_ID: TypeId = 4;
+    pub(super) const UNIT_ID: TypeId = 5;
+
     pub(super) fn new() -> Self {
+        // NOTE: please keep in sync with above consts
+        let type_id_to_type = vec![
+            Type::Integer,
+            Type::Boolean,
+            Type::Float,
+            Type::String,
+            Type::Never,
+            Type::unit(),
+        ];
+
         Self {
-            type_id_to_type: Vec::new(),
+            type_id_to_type,
             ident_to_type_id: HashMap::new(),
             next_type_var_id: 0,
         }

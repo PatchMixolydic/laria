@@ -1,3 +1,5 @@
+use std::fmt;
+
 use super::types::{Type, TypeEnvironment, TypeId};
 use crate::{ast, errors::Span, lexer::token::LiteralKind};
 
@@ -152,6 +154,15 @@ impl From<ast::UnaryOperator> for UnaryOperator {
         match ast_op {
             ast::UnaryOperator::Negative => Self::Negative,
             ast::UnaryOperator::Not => Self::Not,
+        }
+    }
+}
+
+impl fmt::Display for UnaryOperator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UnaryOperator::Negative => write!(f, "-"),
+            UnaryOperator::Not => write!(f, "!"),
         }
     }
 }
