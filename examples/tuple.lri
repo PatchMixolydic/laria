@@ -7,7 +7,7 @@ fn main() {
     x = 1 + 2;
 
     let y = (3 + 4,);
-    let y = (8,);
+    y = (8,);
     // this will (correctly) not typecheck
     // y = 3 + 4;
 
