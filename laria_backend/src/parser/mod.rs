@@ -544,25 +544,10 @@ impl<'src> Parser<'src> {
             if self.eat(Expected::OpenDelim(DelimKind::Paren)) {
                 // Oh! This is a function call
                 // Let's eat the arguments
-                let mut args = Vec::new();
-                while !self.check_next(Expected::CloseDelim(DelimKind::Paren)) {
-                    let maybe_expr = self.parse_expression(
-                        &[
-                            Expected::CloseDelim(DelimKind::Paren),
-                            Expected::Symbol(Symbol::Comma),
-                        ],
-                        0,
-                    )?;
-
-                    match maybe_expr {
-                        Some(expr) => {
-                            self.eat(Expected::Symbol(Symbol::Comma));
-                            args.push(expr);
-                        },
-
-                        None => return Err(self.unexpected()),
-                    }
-                }
+                let (args, _) = self.parse_expr_list(
+                    Expected::Symbol(Symbol::Comma),
+                    Expected::CloseDelim(DelimKind::Paren),
+                )?;
 
                 let close_paren = self.expect_item(Expected::CloseDelim(DelimKind::Paren))?;
                 span.grow_to_contain(&close_paren.span);
