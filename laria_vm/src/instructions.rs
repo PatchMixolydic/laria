@@ -30,10 +30,7 @@ pub enum Instruction {
     PushOverflow,
     /// Branches to a target address
     /// if the `COMPARISON` flag is clear.
-    /// Branching when `COMPARISON` is clear is
-    /// an optimization to avoid negating the
-    /// conditions on `if` and `while` expressions.
-    CondBranch,
+    BranchIfFalse,
     /// Jumps unconditionally to a target address.
     Jump,
     /// Jumps unconditionally to a target function.

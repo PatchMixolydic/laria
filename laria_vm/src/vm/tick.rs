@@ -538,7 +538,7 @@ impl VM {
                     .push(Value::Byte(self.flags.contains(Flags::OVERFLOW) as u8));
             },
 
-            Instruction::CondBranch => two_arg!((condition, maybe_address) => {
+            Instruction::BranchIfFalse => two_arg!((condition, maybe_address) => {
                 let address = match maybe_address {
                     Value::UnsignedInt(res) => res as usize,
                     _ => return Err(VMError::WrongType)
@@ -546,7 +546,6 @@ impl VM {
 
                 match condition {
                     Value::Byte(b) => {
-                        // CondBranch jumps on false
                         if b == 0 {
                             self.program_counter = address;
                         }

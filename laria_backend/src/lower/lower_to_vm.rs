@@ -320,7 +320,7 @@ impl Lower {
                 otherwise,
             } => {
                 self.lower_expression(*cond);
-                let mut else_target_range = self.emit_temp_jump_target(Instruction::CondBranch);
+                let mut else_target_range = self.emit_temp_jump_target(Instruction::BranchIfFalse);
 
                 // If `cond` is false, execution will jump ahead;
                 // otherwise, it continues on. Because of this,
@@ -371,10 +371,9 @@ impl Lower {
                 self.instructions.push(Instruction::GetLocal as u8);
                 self.emit_push(Value::UnsignedInt(loop_max_local as u64));
                 self.instructions.push(Instruction::GetLocal as u8);
-                // CondBranch jumps when the topmost value on the stack is false (0).
                 // This is effectively `while loop_ctr < loop_max { ... }`
                 self.instructions.push(Instruction::Less as u8);
-                let exit_target_range = self.emit_temp_jump_target(Instruction::CondBranch);
+                let exit_target_range = self.emit_temp_jump_target(Instruction::BranchIfFalse);
 
                 // Execute the body
                 self.lower_expression(body.into());
@@ -396,7 +395,7 @@ impl Lower {
                 let loop_target = Value::UnsignedInt(self.instructions.len() as u64);
 
                 self.lower_expression(*condition);
-                let exit_target_range = self.emit_temp_jump_target(Instruction::CondBranch);
+                let exit_target_range = self.emit_temp_jump_target(Instruction::BranchIfFalse);
 
                 self.lower_expression(body.into());
                 self.emit_push(loop_target);
