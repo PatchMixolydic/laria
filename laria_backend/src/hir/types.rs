@@ -50,8 +50,8 @@ impl Type {
                 let contents_string = contents
                     .into_iter()
                     .map(|id| ty_env.type_from_id(*id).to_string(ty_env))
-                    .intersperse(", ".to_owned())
-                    .collect::<String>();
+                    .collect::<Vec<_>>()
+                    .join(", ");
 
                 format!("({})", contents_string)
             },
