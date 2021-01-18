@@ -5,18 +5,18 @@ use super::{
 use crate::ast;
 
 /// Helper struct to hold state while lowering the AST.
-struct LowerAst<'src> {
-    ty_env: TypeEnvironment<'src>,
+struct LowerAst {
+    ty_env: TypeEnvironment,
 }
 
-impl<'src> LowerAst<'src> {
-    fn new(source: &'src str) -> Self {
+impl LowerAst {
+    fn new(source: &str) -> Self {
         Self {
-            ty_env: TypeEnvironment::new(source),
+            ty_env: TypeEnvironment::new(),
         }
     }
 
-    fn lower(mut self, ast_script: ast::Script) -> (hir_tree::Script, TypeEnvironment<'src>) {
+    fn lower(mut self, ast_script: ast::Script) -> (hir_tree::Script, TypeEnvironment) {
         let mut functions = Vec::new();
 
         for function in ast_script.functions {
@@ -72,7 +72,7 @@ impl<'src> LowerAst<'src> {
         // Should be infallible since a variable should've just been created
         // (nb. will only be true when paths are added)
         self.ty_env
-            .unify(type_id_for_fn_name, fn_type, header.span)
+            .unify(type_id_for_fn_name, fn_type)
             .expect(&format!(
                 "Problem unifying types while lowering {}",
                 header.name
@@ -234,6 +234,6 @@ impl<'src> LowerAst<'src> {
 pub(super) fn lower_ast<'src>(
     ast: ast::Script,
     source: &'src str,
-) -> (hir_tree::Script, TypeEnvironment<'src>) {
+) -> (hir_tree::Script, TypeEnvironment) {
     LowerAst::new(source).lower(ast)
 }

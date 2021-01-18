@@ -11,13 +11,13 @@ use crate::{
 };
 
 struct Typecheck<'src> {
-    ty_env: TypeEnvironment<'src>,
+    ty_env: TypeEnvironment,
     error_ctx: DiagnosticsContext<'src>,
     failed: bool,
 }
 
 impl<'src> Typecheck<'src> {
-    fn new(ty_env: TypeEnvironment<'src>, source: &'src str) -> Self {
+    fn new(ty_env: TypeEnvironment, source: &'src str) -> Self {
         Self {
             ty_env,
             error_ctx: DiagnosticsContext::new(source, None),
@@ -25,7 +25,22 @@ impl<'src> Typecheck<'src> {
         }
     }
 
-    fn check_script(mut self, mut script: Script) -> (Script, TypeEnvironment<'src>) {
+    fn emit_typical_type_error(&self, first_id: TypeId, second_id: TypeId, span: Span) {
+        let first_ty = self.ty_env.type_from_id(first_id);
+        let second_ty = self.ty_env.type_from_id(second_id);
+
+        self.error_ctx
+            .build_error(format!(
+                "expected {}, found {}",
+                second_ty.to_string(&self.ty_env),
+                first_ty.to_string(&self.ty_env)
+            ))
+            .span_label(span, "type error detected here")
+            .note("this may be inaccurate; these diagnostics will improve in the future")
+            .emit();
+    }
+
+    fn check_script(mut self, mut script: Script) -> (Script, TypeEnvironment) {
         for function in &mut script.functions {
             self.check_function(function);
         }
@@ -38,7 +53,8 @@ impl<'src> Typecheck<'src> {
     }
 
     fn try_unify(&mut self, first_id: TypeId, second_id: TypeId, span: Span) {
-        if let Err(_) = self.ty_env.unify(first_id, second_id, span) {
+        if let Err(_) = self.ty_env.unify(first_id, second_id) {
+            self.emit_typical_type_error(first_id, second_id, span);
             self.failed = true;
         }
     }
@@ -309,9 +325,9 @@ impl<'src> Typecheck<'src> {
 
 pub(super) fn typecheck<'src>(
     script: Script,
-    ty_env: TypeEnvironment<'src>,
+    ty_env: TypeEnvironment,
     source: &'src str,
-) -> (Script, TypeEnvironment<'src>) {
+) -> (Script, TypeEnvironment) {
     let typechecker = Typecheck::new(ty_env, source);
     typechecker.check_script(script)
 }

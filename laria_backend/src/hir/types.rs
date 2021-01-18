@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-use crate::errors::{DiagnosticsContext, Span};
-
 pub(super) type TypeId = usize;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -60,7 +58,7 @@ impl Type {
 }
 
 /// Holds information on the type universe.
-pub(super) struct TypeEnvironment<'src> {
+pub(super) struct TypeEnvironment {
     type_id_to_type: Vec<Type>,
     // Let's assume name resolution was done already,
     // so we don't have any invalid identifiers
@@ -69,16 +67,14 @@ pub(super) struct TypeEnvironment<'src> {
     // interned path to the ident
     ident_to_type_id: HashMap<String, TypeId>,
     next_type_var_id: u64,
-    error_ctx: DiagnosticsContext<'src>,
 }
 
-impl<'src> TypeEnvironment<'src> {
-    pub(super) fn new(source: &'src str) -> Self {
+impl TypeEnvironment {
+    pub(super) fn new() -> Self {
         Self {
             type_id_to_type: Vec::new(),
             ident_to_type_id: HashMap::new(),
             next_type_var_id: 0,
-            error_ctx: DiagnosticsContext::new(source, None),
         }
     }
 
@@ -125,12 +121,7 @@ impl<'src> TypeEnvironment<'src> {
     }
 
     /// Unify two types, asserting that they must be equal.
-    pub(super) fn unify(
-        &mut self,
-        first_id: TypeId,
-        second_id: TypeId,
-        span: Span,
-    ) -> Result<(), ()> {
+    pub(super) fn unify(&mut self, first_id: TypeId, second_id: TypeId) -> Result<(), ()> {
         let first_ty = self.type_from_id(first_id);
         let second_ty = self.type_from_id(second_id);
         match (first_ty, second_ty) {
@@ -141,7 +132,7 @@ impl<'src> TypeEnvironment<'src> {
             },
 
             (_, Type::Variable(_)) => {
-                self.unify(second_id, first_id, span)?;
+                self.unify(second_id, first_id)?;
             },
 
             (Type::Integer, Type::Integer)
@@ -162,8 +153,8 @@ impl<'src> TypeEnvironment<'src> {
                 let ret_id_1 = *ret_id_1;
                 let ret_id_2 = *ret_id_2;
 
-                self.unify(params_id_1, params_id_2, span)?;
-                self.unify(ret_id_1, ret_id_2, span)?;
+                self.unify(params_id_1, params_id_2)?;
+                self.unify(ret_id_1, ret_id_2)?;
             },
 
             (Type::Tuple(type_ids_1), Type::Tuple(type_ids_2))
@@ -177,21 +168,11 @@ impl<'src> TypeEnvironment<'src> {
                 let type_ids: Vec<_> = type_ids_1.iter().copied().zip(type_ids_2_iter).collect();
 
                 for (left_id, right_id) in type_ids {
-                    self.unify(left_id, right_id, span)?;
+                    self.unify(left_id, right_id)?;
                 }
             }
 
             (_, _) => {
-                self.error_ctx
-                    .build_error(format!(
-                        "expected {}, found {}",
-                        second_ty.to_string(self),
-                        first_ty.to_string(self)
-                    ))
-                    .span_label(span, "type error detected here")
-                    .note("this may be inaccurate; these diagnostics will improve in the future")
-                    .emit();
-
                 return Err(());
             },
         }
