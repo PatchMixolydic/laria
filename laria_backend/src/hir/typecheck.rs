@@ -166,7 +166,7 @@ impl<'src> Typecheck<'src> {
                 // TODO: check float + float, int + int
                 self.check_expression(lhs, fn_return_type);
                 self.check_expression(rhs, fn_return_type);
-                self.try_unify(lhs.type_id, rhs.type_id, rhs.span);
+                self.try_unify(rhs.type_id, lhs.type_id, rhs.span);
 
                 match op {
                     BinaryOperator::Add

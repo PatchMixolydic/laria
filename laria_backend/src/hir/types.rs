@@ -166,7 +166,9 @@ impl<'src> TypeEnvironment<'src> {
                 self.unify(ret_id_1, ret_id_2, span)?;
             },
 
-            (Type::Tuple(type_ids_1), Type::Tuple(type_ids_2)) => {
+            (Type::Tuple(type_ids_1), Type::Tuple(type_ids_2))
+                if type_ids_1.len() == type_ids_2.len() =>
+            {
                 // Sort of a hack: the type ids are iterated over, copied, and zipped together
                 // into tuples. These tuples are then collected into a Vec, which then gets
                 // iterated over. This doesn't seem great, but iterating over the iterator
@@ -177,7 +179,7 @@ impl<'src> TypeEnvironment<'src> {
                 for (left_id, right_id) in type_ids {
                     self.unify(left_id, right_id, span)?;
                 }
-            },
+            }
 
             (_, _) => {
                 self.error_ctx
