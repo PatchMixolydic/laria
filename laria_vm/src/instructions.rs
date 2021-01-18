@@ -80,16 +80,14 @@ pub enum Instruction {
     SetLocal,
     /// Given a name, retrieves a constant and pushes it on top of the stack.
     GetConstant,
-    /// Given the arity of the tuple, n, pops n values from the stack and
-    /// lifts them into the tuple. For example, if `LiftIntoTuple` was used and
-    /// encountered this stack (where `3` is the top of the stack):
+    /// Given an arity, n, pops n values from the stack and lifts them into
+    /// a tuple. For example, if `LiftIntoTuple` is used with this stack
+    /// (where `3` is the top of the stack):
     /// ```none
     /// [main]["foo"][false][1][3]
     /// ```
     ///
     /// ... then `3`, along with the next 3 elements, would be popped from the
     /// stack, and the tuple `(1, false, "foo")` would be pushed onto it.
-    ///
-    /// This is a bit of a hack and may be removed in the future.
     LiftIntoTuple,
 }
