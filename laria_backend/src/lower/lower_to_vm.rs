@@ -437,6 +437,8 @@ impl Lower {
                 self.instructions.push(Instruction::Return as u8);
             },
 
+            ExpressionKind::Tuple(contents) => todo!("tuple"),
+
             ExpressionKind::Identifier(id) => {
                 if self.try_resolve_local(&id) {
                     self.instructions.push(Instruction::GetLocal as u8);

@@ -1,0 +1,22 @@
+extern fn print(s: String);
+
+fn main() {
+    // TODO: test tuple types
+    // once those are working
+    let x = (1 + 2);
+    x = 1 + 2;
+
+    let y = (3 + 4,);
+    let y = (8,);
+    // this will (correctly) not typecheck
+    // y = 3 + 4;
+
+    let z = ();
+    z = print("z");
+    z = f();
+
+    let w = (1, 2, 3, 4);
+    w = (5, 6, 7, 8);
+}
+
+fn f() {}

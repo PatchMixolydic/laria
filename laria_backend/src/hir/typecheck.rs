@@ -279,6 +279,19 @@ impl<'src> Typecheck<'src> {
                 self.ty_env.get_or_add_type(Type::Never)
             },
 
+            ExpressionKind::Tuple(ref contents) => {
+                let mut expr_types = Vec::new();
+
+                for expr in contents {
+                    let type_id = self.check_expression(expr, fn_return_type);
+                    expr_types.push(type_id);
+                }
+
+                let tuple_type = self.ty_env.get_or_add_type(Type::Tuple(expr_types));
+                self.try_unify(expr.type_id, tuple_type, expr.span);
+                expr.type_id
+            },
+
             ExpressionKind::Literal(ref literal) => match literal {
                 LiteralKind::Integer(_) => self.ty_env.get_or_add_type(Type::Integer),
                 LiteralKind::String(_) => self.ty_env.get_or_add_type(Type::String),

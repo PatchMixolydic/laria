@@ -3,7 +3,10 @@ use super::{
     keyword::Keyword,
     Expected, ParseError, Parser,
 };
-use crate::lexer::{lex, token::Symbol};
+use crate::lexer::{
+    lex,
+    token::{Symbol, TokenKind},
+};
 
 /// Lexes a source stream
 /// and creates a parser using the resulting tokens.
@@ -191,4 +194,60 @@ fn too_many_args() {
     let mut parser = parser!(&src);
     let res = parser.parse_fn();
     assert!(matches!(res, Err(ParseError::TooManyArgsOnFnDef)));
+}
+
+// hehe
+#[test]
+fn unit_test() {
+    let mut parser = parser!("();");
+    let res = parser
+        .parse_expression(&[Expected::Symbol(Symbol::Semicolon)], 0)
+        .expect("Expected a successful parse")
+        .expect("Expected an expression");
+
+    match res.kind {
+        ExpressionKind::Tuple(contents) => assert!(contents.is_empty()),
+        _ => unreachable!(),
+    }
+}
+
+#[test]
+fn tuple() {
+    let mut parser = parser!("(1, 2, 3 + 4 + 5);");
+    let res = parser
+        .parse_expression(&[Expected::Symbol(Symbol::Semicolon)], 0)
+        .expect("Expected a successful parse")
+        .expect("Expected an expression");
+
+    match res.kind {
+        ExpressionKind::Tuple(contents) => assert_eq!(contents.len(), 3),
+        _ => unreachable!(),
+    }
+}
+
+#[test]
+fn tuple_trailing_comma() {
+    let mut parser = parser!("(1, 2, 3 + 4 + 5,);");
+    let res = parser
+        .parse_expression(&[Expected::Symbol(Symbol::Semicolon)], 0)
+        .expect("Expected a successful parse")
+        .expect("Expected an expression");
+
+    match res.kind {
+        ExpressionKind::Tuple(contents) => assert_eq!(contents.len(), 3),
+        _ => unreachable!(),
+    }
+}
+
+#[test]
+fn too_many_commas() {
+    let mut parser = parser!("(1, 2, 3 + 4 + 5,,);");
+    let res = parser.parse_expression(&[Expected::Symbol(Symbol::Semicolon)], 0);
+
+    assert!(matches!(
+        res,
+        Err(ParseError::UnexpectedToken(TokenKind::Symbol(
+            Symbol::Comma
+        )))
+    ))
 }

@@ -315,6 +315,9 @@ pub enum ExpressionKind {
     /// A return expression, ex. `return 100`
     Return(Box<Expression>),
 
+    /// A tuple, ex. `(1, false, "foo")`
+    Tuple(Vec<Expression>),
+
     /// A literal, such as `4` or `"Hello"`.
     Literal(LiteralKind),
 
@@ -392,6 +395,16 @@ impl fmt::Display for Expression {
             },
 
             ExpressionKind::Return(expr) => write!(f, "return {}", expr),
+
+            ExpressionKind::Tuple(contents) => {
+                write!(f, "(")?;
+
+                for arg in contents {
+                    write!(f, "{}, ", arg)?;
+                }
+
+                write!(f, ")")
+            },
 
             ExpressionKind::Literal(literal) => write!(f, "{}", literal),
             ExpressionKind::Identifier(ident) => write!(f, "{}", ident),

@@ -207,6 +207,16 @@ impl<'src> LowerAst<'src> {
                 hir_tree::ExpressionKind::Return(expr)
             },
 
+            ast::ExpressionKind::Tuple(ast_contents) => {
+                let mut hir_contents = Vec::new();
+
+                for expr in ast_contents {
+                    hir_contents.push(self.lower_expression(expr));
+                }
+
+                hir_tree::ExpressionKind::Tuple(hir_contents)
+            },
+
             ast::ExpressionKind::Literal(literal) => hir_tree::ExpressionKind::Literal(literal),
             ast::ExpressionKind::Identifier(ident) => hir_tree::ExpressionKind::Identifier(ident),
         };

@@ -242,6 +242,9 @@ pub(super) enum ExpressionKind {
     /// A return expression, ex. `return 100`
     Return(Box<Expression>),
 
+    /// A tuple, ex. `(1, false, "foo")`
+    Tuple(Vec<Expression>),
+
     /// A literal, such as `4` or `"Hello"`.
     Literal(LiteralKind),
 

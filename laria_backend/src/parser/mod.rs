@@ -386,6 +386,50 @@ impl<'src> Parser<'src> {
         }
     }
 
+    /// Parses a list of expressions, such as `1, 2, 3)`.
+    /// `separator` is the token between expressions, while
+    /// `end_delimiter` is the last delimiter in the sequence.
+    /// Separators are consumed, but the ending delimiter is not.
+    fn parse_expr_list(
+        &mut self,
+        separator: Expected,
+        end_delimiter: Expected,
+    ) -> Result<(Vec<Expression>, bool), ParseError> {
+        let mut res = Vec::new();
+        let mut encountered_separator = false;
+
+        while !self.check_next(end_delimiter) {
+            match self.parse_expression(&[separator, end_delimiter], 0)? {
+                Some(expr) => {
+                    res.push(expr);
+
+                    // This should take care of any trailing separators
+                    if self.eat(separator) {
+                        encountered_separator = true;
+                    }
+                },
+
+                None => {
+                    // Trailing delimiters should've been eaten,
+                    // so this is probably something like `(,)`
+                    let separator_token = self.expect_item(separator)?;
+
+                    self.error_ctx
+                        .build_error_span(
+                            separator_token.span,
+                            format!("expected expression, found {}", separator),
+                        )
+                        .help("try removing this separator")
+                        .emit();
+
+                    return Err(ParseError::UnexpectedToken(separator_token.kind));
+                },
+            }
+        }
+
+        Ok((res, encountered_separator))
+    }
+
     /// Parse an expression until a token matching a member of
     /// `delimiters` is encountered. This does not consume delimiters.
     /// `min_bind_power` is used for recursively parsing binary
@@ -404,18 +448,30 @@ impl<'src> Parser<'src> {
             // oh!
             return Ok(None);
         } else if self.eat(Expected::OpenDelim(DelimKind::Paren)) {
-            // TODO: tuples
-            let expr = {
-                match self.parse_expression(&[Expected::CloseDelim(DelimKind::Paren)], 0)? {
-                    Some(res) => res,
-                    None => todo!("unit?"),
-                }
+            // This could be a tuple or a parenthesized expression.
+            let (mut exprs, encountered_delim) = self.parse_expr_list(
+                Expected::Symbol(Symbol::Comma),
+                Expected::CloseDelim(DelimKind::Paren),
+            )?;
+
+            // If exprs is empty, that means we've encountered `()`,
+            // which is the empty tuple (ie. unit)
+            let mut expr = if encountered_delim || exprs.is_empty() {
+                Expression::new(ExpressionKind::Tuple(exprs), span)
+            } else {
+                // Parenthesiezd expression
+                // Sanity check in debug mode
+                debug_assert_eq!(exprs.len(), 1);
+                exprs
+                    .pop()
+                    .expect("An empty set of parentheses should've been parsed as a tuple")
             };
 
             let close_paren_span = self
                 .expect_item(Expected::CloseDelim(DelimKind::Paren))?
                 .span;
             span.grow_to_contain(&close_paren_span);
+            expr.span = span;
 
             expr
         } else if self.eat(Expected::Keyword(Keyword::Return)) {
