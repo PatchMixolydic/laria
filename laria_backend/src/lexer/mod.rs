@@ -210,6 +210,20 @@ impl<'src> Lexer<'src> {
         }
     }
 
+    /// Take every character that could be considered whitespace
+    fn consume_whitespace(&mut self) {
+        loop {
+            match self.chars.peek() {
+                Some((_, c)) if c.is_whitespace() => {
+                    self.chars.next();
+                },
+
+                Some((_, c)) => break,
+                None => break,
+            }
+        }
+    }
+
     /// Take every character that could be considered part of an identifier
     /// and produce an `IdentOrKeyword` token.
     fn consume_ident_or_keyword(&mut self) -> Token {
@@ -323,53 +337,57 @@ impl<'src> Lexer<'src> {
         let mut last_idx = span_start;
 
         loop {
-            if let Some((idx, c)) = self.chars.next() {
-                last_idx = idx;
+            match self.chars.next() {
+                Some((idx, c)) => {
+                    last_idx = idx;
 
-                match c {
-                    '"' if !escape => {
-                        break;
-                    },
+                    match c {
+                        '"' if !escape => {
+                            break;
+                        },
 
-                    '\\' if !escape => {
-                        escape = true;
-                    },
+                        '\\' if !escape => {
+                            escape = true;
+                        },
 
-                    _ if escape => {
-                        match c {
-                            'n' => res_vec.push('\n'),
-                            'r' => res_vec.push('\r'),
-                            't' => res_vec.push('\t'),
-                            '"' => res_vec.push('"'),
-                            '\\' => res_vec.push('\\'),
-                            '\n' | '\r' => {},
+                        _ if escape => {
+                            match c {
+                                'n' => res_vec.push('\n'),
+                                'r' => res_vec.push('\r'),
+                                't' => res_vec.push('\t'),
+                                '"' => res_vec.push('"'),
+                                '\\' => res_vec.push('\\'),
+                                _ if c.is_whitespace() => self.consume_whitespace(),
 
-                            _ => {
-                                self.error_ctx
-                                    .build_error_span(
-                                        Span::new(idx - 1, 2),
-                                        format!("invalid escape `\\{}`", c),
-                                    )
-                                    .emit();
+                                _ => {
+                                    self.error_ctx
+                                        .build_error_span(
+                                            Span::new(idx - 1, 2),
+                                            format!("invalid escape `\\{}`", c),
+                                        )
+                                        .emit();
 
-                                return Err(LexError::CouldntParseString(span_start));
-                            },
-                        };
+                                    return Err(LexError::CouldntParseString(span_start));
+                                },
+                            };
 
-                        escape = false;
-                    },
+                            escape = false;
+                        },
 
-                    _ => res_vec.push(c),
-                }
-            } else {
-                self.error_ctx
-                    .build_error_span(
-                        Span::new(span_start, last_idx - span_start + 1),
-                        "unexpected end of file while lexing string literal",
-                    )
-                    .emit();
+                        _ => res_vec.push(c),
+                    }
+                },
 
-                return Err(LexError::UnexpectedEOF(last_idx));
+                None => {
+                    self.error_ctx
+                        .build_error_span(
+                            Span::new(span_start, last_idx - span_start + 1),
+                            "unexpected end of file while lexing string literal",
+                        )
+                        .emit();
+
+                    return Err(LexError::UnexpectedEOF(last_idx));
+                },
             }
         }
 

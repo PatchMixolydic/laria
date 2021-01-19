@@ -182,6 +182,24 @@ fn lex_shebang_and_attribute() {
     );
 }
 
+#[test]
+fn multiline_string() {
+    let mut res = lex(r#"
+        "hello \
+        multiple \
+        lines"
+    "#)
+    .expect("Expected a successful lex")
+    .into_iter();
+
+    println!("{:?}", res);
+
+    assert_lex_result!(
+        res,
+        TokenKind::Literal(LiteralKind::String("hello multiple lines".to_owned())),
+    );
+}
+
 proptest! {
     /// Inspired by proptest's README
     #[test]
