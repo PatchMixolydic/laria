@@ -9,7 +9,7 @@ use std::{collections::HashMap, convert::TryInto, ops::Range};
 use crate::{
     lexer::token::LiteralKind,
     parser::ast::{
-        BinaryOperator, Block, Expression, ExpressionKind, FunctionDef, Script, Statement,
+        BinaryOperator, Block, Expression, ExpressionKind, FunctionDef, Path, Script, Statement,
         StatementKind, UnaryOperator,
     },
 };
@@ -74,7 +74,7 @@ impl Lower {
             .try_into()
             .expect("too many fn args");
 
-        let subroutine = Subroutine::new(function.header.name, num_args, start_address);
+        let subroutine = Subroutine::new(function.header.name.to_string(), num_args, start_address);
         self.globals
             .insert(subroutine.name().to_owned(), Value::Subroutine(subroutine));
 
@@ -101,7 +101,7 @@ impl Lower {
 
             StatementKind::Declaration((name, ty), rhs) => {
                 self.lower_expression(rhs);
-                self.locals_stack.push(name);
+                self.locals_stack.push(name.to_string());
             },
         }
     }
@@ -147,9 +147,10 @@ impl Lower {
     /// this function pushes the local variable index to the stack
     /// and returns `true`. The stack is not modified if the lookup
     /// fails.
-    fn try_resolve_local(&mut self, id: &str) -> bool {
+    fn try_resolve_local(&mut self, path: &Path) -> bool {
+        let path_str = path.to_string();
         for (i, name) in self.locals_stack.iter().enumerate().rev() {
-            if name == &id {
+            if name == &path_str {
                 // Found a local
                 self.emit_push(Value::UnsignedInt(i as u64));
                 return true;
@@ -163,10 +164,11 @@ impl Lower {
     /// this function pushes the variable name to the stack
     /// and returns `true`. The stack is not modified if the lookup
     /// fails.
-    fn try_resolve_global(&mut self, id: &str) -> bool {
-        if self.globals.contains_key(id) {
+    fn try_resolve_global(&mut self, path: &Path) -> bool {
+        let path_str = path.to_string();
+        if self.globals.contains_key(&path_str) {
             // yup!
-            self.emit_push(Value::String(id.to_owned()));
+            self.emit_push(Value::String(path_str));
             true
         } else {
             false
@@ -182,12 +184,12 @@ impl Lower {
         self.locals_stack.len() - 1
     }
 
-    fn emit_variable_not_found(&self, id: &str) -> ! {
+    fn emit_variable_not_found(&self, path: &Path) -> ! {
         let mut locals_in_scope = self.locals_stack.clone();
         locals_in_scope.sort();
         locals_in_scope.dedup();
 
-        println!("variable `{}` not found in current scope", id);
+        println!("variable `{}` not found in current scope", path);
         println!("locals in scope: {:#?}", locals_in_scope);
         println!("globals: {:#?}", self.globals);
         todo!();
@@ -208,19 +210,18 @@ impl Lower {
             },
 
             ExpressionKind::BinaryOperation(lhs, BinaryOperator::Assign, rhs) => {
-                let id = match lhs.kind {
-                    ExpressionKind::Identifier(id) => id,
-
+                let path = match lhs.kind {
+                    ExpressionKind::Path(path) => path,
                     _ => panic!("Invalid left hand side for assignment: {}", lhs),
                 };
 
                 // Lower the right hand side preemptively
                 self.lower_expression(*rhs);
 
-                if self.try_resolve_local(&id) {
+                if self.try_resolve_local(&path) {
                     // Found a local variable
                     self.instructions.push(Instruction::SetLocal as u8);
-                } else if self.try_resolve_global(&id) {
+                } else if self.try_resolve_global(&path) {
                     // Found a global variable
                     self.instructions.push(Instruction::SetGlobal as u8);
                 } else {
@@ -228,7 +229,7 @@ impl Lower {
                     // TODO: how should constants be handled?
 
                     // Not found!
-                    self.emit_variable_not_found(&id);
+                    self.emit_variable_not_found(&path);
                 }
 
                 // Assignments return unit
@@ -297,7 +298,7 @@ impl Lower {
 
             ExpressionKind::FnCall(maybe_fn_name, args) => {
                 let fn_name = match maybe_fn_name.kind {
-                    ExpressionKind::Identifier(id) => id,
+                    ExpressionKind::Path(path) => path.to_string(),
                     _ => todo!("function call with {}", maybe_fn_name),
                 };
 
@@ -449,7 +450,7 @@ impl Lower {
                 self.instructions.push(Instruction::LiftIntoTuple as u8);
             },
 
-            ExpressionKind::Identifier(id) => {
+            ExpressionKind::Path(id) => {
                 if self.try_resolve_local(&id) {
                     self.instructions.push(Instruction::GetLocal as u8);
                 } else if self.try_resolve_global(&id) {

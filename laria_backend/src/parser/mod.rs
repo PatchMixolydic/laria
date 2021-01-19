@@ -169,7 +169,7 @@ impl<'src> Parser<'src> {
         while !self.check_next(Expected::CloseDelim(DelimKind::Paren)) {
             let arg_name = self.expect_item(Expected::Ident)?.kind.unwrap_ident();
             self.expect_item(Expected::Symbol(Symbol::Colon))?;
-            let arg_type = self.expect_item(Expected::Ident)?.kind.unwrap_ident();
+            let arg_type = self.parse_type()?;
 
             args.push((arg_name, arg_type));
 
@@ -209,13 +209,13 @@ impl<'src> Parser<'src> {
 
         let return_type = if self.eat(Expected::Symbol(Symbol::Arrow)) {
             // We have a return type
-            // TODO: this should be a path
-            Some(self.expect_item(Expected::Ident)?.kind.unwrap_ident())
+            Some(self.parse_type()?)
         } else {
             None
         };
 
-        Ok(FunctionDecl::new(fn_name, args, return_type, header_span))
+        let path = Path::new(PathSearchLocation::Local, vec![fn_name], name_span);
+        Ok(FunctionDecl::new(path, args, return_type, header_span))
     }
 
     fn parse_extern_fn(&mut self) -> Result<ExternFn, ParseError> {
@@ -310,11 +310,14 @@ impl<'src> Parser<'src> {
     /// Consumes the semicolon.
     fn parse_variable_declaration(&mut self) -> Result<Statement, ParseError> {
         let mut span = self.expect_item(Expected::Keyword(Keyword::Let))?.span;
-        let name = self.expect_item(Expected::Ident)?.kind.unwrap_ident();
+        let (name, name_span) = {
+            let token = self.expect_item(Expected::Ident)?;
+            let span = token.span;
+            (token.kind.unwrap_ident(), span)
+        };
 
         let ty = if self.eat(Expected::Symbol(Symbol::Colon)) {
-            // TODO: path
-            Some(self.expect_item(Expected::Ident)?.kind.unwrap_ident())
+            Some(self.parse_type()?)
         } else {
             None
         };
@@ -326,10 +329,14 @@ impl<'src> Parser<'src> {
         span.grow_to_contain(&semicolon_span);
 
         match maybe_expr {
-            Some(expr) => Ok(Statement::new(
-                StatementKind::Declaration((name, ty), expr),
-                span,
-            )),
+            Some(expr) => {
+                let path = Path::new(PathSearchLocation::Local, vec![name], name_span);
+
+                Ok(Statement::new(
+                    StatementKind::Declaration((path, ty), expr),
+                    span,
+                ))
+            },
 
             None => {
                 self.error_ctx
@@ -342,6 +349,75 @@ impl<'src> Parser<'src> {
                 )))
             },
         }
+    }
+
+    fn parse_type(&mut self) -> Result<Type, ParseError> {
+        if self.check_next(Expected::Symbol(Symbol::Exclamation)) {
+            let span = self
+                .expect_item(Expected::Symbol(Symbol::Exclamation))?
+                .span;
+
+            Ok(Type::new(TypeKind::Never, span))
+        } else if self.check_next(Expected::OpenDelim(DelimKind::Paren)) {
+            let mut span = self
+                .expect_item(Expected::OpenDelim(DelimKind::Paren))?
+                .span;
+
+            let mut contents = Vec::new();
+
+            while !self.check_next(Expected::CloseDelim(DelimKind::Paren)) {
+                contents.push(self.parse_type()?);
+                self.eat(Expected::Symbol(Symbol::Comma));
+            }
+
+            let close_paren_span = self
+                .expect_item(Expected::CloseDelim(DelimKind::Paren))?
+                .span;
+            span.grow_to_contain(&close_paren_span);
+
+            Ok(Type::new(TypeKind::Tuple(contents), span))
+        } else {
+            let path = self.parse_path()?;
+            let path_span = path.span;
+            Ok(Type::new(TypeKind::Path(path), path_span))
+        }
+    }
+
+    fn parse_path(&mut self) -> Result<Path, ParseError> {
+        let mut span = match self.tokens.peek() {
+            Some(token) => token.span,
+            None => return Err(self.unexpected()),
+        };
+
+        let location = if self.eat(Expected::Keyword(Keyword::SelfKw)) {
+            self.expect_item(Expected::Symbol(Symbol::DoubleColon))?;
+            PathSearchLocation::SelfMod
+        } else if self.eat(Expected::Keyword(Keyword::Super)) {
+            self.expect_item(Expected::Symbol(Symbol::DoubleColon))?;
+            PathSearchLocation::Super
+        } else if self.eat(Expected::Keyword(Keyword::Root)) {
+            self.expect_item(Expected::Symbol(Symbol::DoubleColon))?;
+            PathSearchLocation::Root
+        } else if self.eat(Expected::Symbol(Symbol::DoubleColon)) {
+            PathSearchLocation::Absolute
+        } else {
+            PathSearchLocation::Local
+        };
+
+        let first_segment = self.expect_item(Expected::Ident)?.kind.unwrap_ident();
+        let mut segments = vec![first_segment];
+
+        while self.eat(Expected::Symbol(Symbol::DoubleColon)) {
+            if !self.check_next(Expected::Ident) {
+                break;
+            }
+
+            let ident = self.expect_item(Expected::Ident)?;
+            span.grow_to_contain(&ident.span);
+            segments.push(ident.kind.unwrap_ident());
+        }
+
+        Ok(Path::new(location, segments, span))
     }
 
     /// Parses a list of expressions, such as `1, 2, 3)`.
@@ -470,17 +546,9 @@ impl<'src> Parser<'src> {
             span.grow_to_contain(&literal_span);
             Expression::new(ExpressionKind::Literal(literal_kind), span)
         } else if self.check_next(Expected::Ident) {
-            let (ident, ident_span) = match self.bump() {
-                Some(Token {
-                    kind: TokenKind::IdentOrKeyword(ident),
-                    span,
-                }) => (ident, span),
-
-                _ => unreachable!(),
-            };
-
-            span.grow_to_contain(&ident_span);
-            Expression::new(ExpressionKind::Identifier(ident), span)
+            let path = self.parse_path()?;
+            span.grow_to_contain(&path.span);
+            Expression::new(ExpressionKind::Path(path), span)
         } else {
             return Err(self.unexpected());
         };

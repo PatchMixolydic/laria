@@ -1,4 +1,7 @@
-use std::fmt;
+use std::{
+    fmt,
+    hash::{Hash, Hasher},
+};
 
 use super::types::{Type, TypeEnvironment, TypeId};
 use crate::{ast, errors::Span, lexer::token::LiteralKind};
@@ -17,10 +20,10 @@ impl Script {
 }
 
 /// A function declaration. This is just the function's header,
-/// which contains its name and arguments.
+/// which contains its path and arguments.
 #[derive(Clone, Debug)]
 pub(super) struct FunctionDecl {
-    pub(super) name: String,
+    pub(super) path: Path,
     pub(super) arg_names: Vec<String>,
     /// This should be a [`Tuple`] containing the argument types.
     ///
@@ -39,7 +42,7 @@ pub(super) struct FunctionDecl {
 impl FunctionDecl {
     pub(super) fn new(
         ty_env: &mut TypeEnvironment,
-        name: String,
+        path: Path,
         arg_names: Vec<String>,
         args_type: TypeId,
         ret_type: TypeId,
@@ -48,7 +51,7 @@ impl FunctionDecl {
         let fn_type = ty_env.add_type(Type::Function(args_type, ret_type));
 
         Self {
-            name,
+            path,
             arg_names,
             args_type,
             ret_type,
@@ -118,6 +121,60 @@ impl Block {
     }
 }
 
+/// A path identifying an item.
+/// All paths in the HIR are absolute.
+#[derive(Clone, Debug, Eq)]
+pub struct Path {
+    // TODO: name resolution
+    pub segments: Vec<String>,
+    pub span: Span,
+}
+
+impl Path {
+    pub const fn new(segments: Vec<String>, span: Span) -> Self {
+        Self { segments, span }
+    }
+}
+
+impl PartialEq for Path {
+    fn eq(&self, other: &Self) -> bool {
+        // `span` should not be considered for equality
+        self.segments == other.segments
+    }
+}
+
+impl Hash for Path {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        // `span` should not be considered in the hash
+        self.segments.hash(state);
+    }
+}
+
+impl fmt::Display for Path {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "::{}", self.segments.join("::"))
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum TypeNameKind {
+    Tuple(Vec<TypeName>),
+    Never,
+    Path(Path),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct TypeName {
+    kind: TypeNameKind,
+    span: Span,
+}
+
+impl TypeName {
+    pub const fn new(kind: TypeNameKind, span: Span) -> Self {
+        Self { kind, span }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum StatementKind {
     /// An expression followed by a semicolon,
@@ -128,7 +185,7 @@ pub(super) enum StatementKind {
     // TODO: pattern matching?
     /// A variable declaration,
     /// `let lhs.0: lhs.1 = rhs;`.
-    Declaration((String, TypeId), Expression),
+    Declaration((Path, TypeId), Expression),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -259,8 +316,8 @@ pub(super) enum ExpressionKind {
     /// A literal, such as `4` or `"Hello"`.
     Literal(LiteralKind),
 
-    /// An identifier, ex. `foo`.
-    Identifier(String),
+    /// A path, ex. `::root::foo`, `::root::bar::baz`, `::std::mem::transmute`
+    Path(Path),
 }
 
 #[derive(Clone, Debug, PartialEq)]

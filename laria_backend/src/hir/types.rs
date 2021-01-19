@@ -1,5 +1,9 @@
 use std::collections::HashMap;
 
+use crate::errors::Span;
+
+use super::hir_tree::Path;
+
 pub(super) type TypeId = usize;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -66,12 +70,13 @@ pub(super) struct TypeEnvironment {
     // TODO: not likely; consider switching to something
     // like Rust's `DefId`, which is more or less an
     // interned path to the ident
-    ident_to_type_id: HashMap<String, TypeId>,
+    path_to_type_id: HashMap<Path, TypeId>,
     next_type_var_id: u64,
 }
 
 impl TypeEnvironment {
     pub(super) fn new() -> Self {
+        // Please keep in sync with primitive paths below
         let type_id_to_type = vec![
             Type::Integer,
             Type::Boolean,
@@ -81,9 +86,22 @@ impl TypeEnvironment {
             Type::unit(),
         ];
 
+        fn path_for(segment: impl Into<String>) -> Path {
+            Path::new(vec![segment.into()], Span::empty())
+        }
+
+        let mut path_to_type_id = HashMap::new();
+        // Bring in the primitives
+        // Please keep in sync with type_id_to_type above
+        // TODO: hack?
+        path_to_type_id.insert(path_for("i64"), 0);
+        path_to_type_id.insert(path_for("bool"), 1);
+        path_to_type_id.insert(path_for("f64"), 2);
+        path_to_type_id.insert(path_for("string"), 3);
+
         Self {
             type_id_to_type,
-            ident_to_type_id: HashMap::new(),
+            path_to_type_id,
             next_type_var_id: 0,
         }
     }
@@ -108,16 +126,16 @@ impl TypeEnvironment {
         &self.type_id_to_type[id]
     }
 
-    /// Given an identifier, get the associated [`TypeId`].
-    pub(super) fn type_id_for_ident(&mut self, ident: &String) -> TypeId {
-        let maybe_res = self.ident_to_type_id.get(ident).copied();
+    /// Given a path, get the associated [`TypeId`].
+    pub(super) fn type_id_for_path(&mut self, path: &Path) -> TypeId {
+        let maybe_res = self.path_to_type_id.get(path).copied();
 
         match maybe_res {
             Some(res) => res,
 
             None => {
                 let type_id = self.add_new_type_variable();
-                self.ident_to_type_id.insert(ident.clone(), type_id);
+                self.path_to_type_id.insert(path.clone(), type_id);
                 type_id
             },
         }

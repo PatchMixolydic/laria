@@ -5,7 +5,7 @@ use std::{
 
 /// Represents a highlighted span in a source
 /// listing.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct Span {
     pub start: usize,
     pub length: usize,

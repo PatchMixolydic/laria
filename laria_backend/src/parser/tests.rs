@@ -1,5 +1,5 @@
 use super::{
-    ast::{BinaryOperator, ExpressionKind},
+    ast::{BinaryOperator, ExpressionKind, Path, PathSearchLocation},
     keyword::Keyword,
     Expected, ParseError, Parser,
 };
@@ -149,7 +149,8 @@ fn fn_call() {
 
     match res.kind {
         ExpressionKind::FnCall(name, args) => {
-            assert_eq!(name.kind, ExpressionKind::Identifier("f".to_string()));
+            let path = Path::new(PathSearchLocation::Local, vec!["f".to_owned()], name.span);
+            assert_eq!(name.kind, ExpressionKind::Path(path));
             assert_eq!(args.len(), 0);
         },
 

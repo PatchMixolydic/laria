@@ -127,7 +127,7 @@ impl<'src> Typecheck<'src> {
                 // Unify that with the ascribed type, if any
                 self.try_unify(type_id, expr_id, expr.span);
                 // Get the type associated with the identifier
-                let ident_ty = self.ty_env.type_id_for_ident(ident);
+                let ident_ty = self.ty_env.type_id_for_path(ident);
                 // ...and unify that with the ascribed type
                 self.try_unify(ident_ty, type_id, expr.span);
             },
@@ -378,7 +378,7 @@ impl<'src> Typecheck<'src> {
                 LiteralKind::Boolean(_) => self.ty_env.add_type(Type::Boolean),
             },
 
-            ExpressionKind::Identifier(ref ident) => self.ty_env.type_id_for_ident(ident),
+            ExpressionKind::Path(ref ident) => self.ty_env.type_id_for_path(ident),
         };
 
         self.try_unify(expr.type_id, res, expr.span);
