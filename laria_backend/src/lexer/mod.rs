@@ -96,6 +96,9 @@ impl<'src> Lexer<'src> {
     /// Ok(None) if the source stream was exhausted,
     /// or Err(...) if an error occurred.
     fn lex_one_token(&mut self) -> Result<Option<Token>, LexError> {
+        // First off, get rid of all whitespace
+        self.consume_whitespace();
+
         // For convenience/reducing parens
         let (idx, c) = match self.chars.peek() {
             // Tuple is deconstructed here to copy the fields
@@ -199,7 +202,8 @@ impl<'src> Lexer<'src> {
                 TokenKind::Symbol(Symbol::Pound),
             ),
 
-            ' ' | '\t' | '\n' | '\r' => self.one_char_token(idx, TokenKind::Whitespace),
+            // Should've been eaten by the call to `consume_whitespace`
+            ' ' | '\t' | '\n' | '\r' => unreachable!(),
 
             _ => {
                 self.error_ctx
