@@ -21,7 +21,8 @@ mod lower;
 mod typecheck;
 mod types;
 
-pub(crate) fn validate(ast: ast::Script, source: &str) {
+pub(crate) fn validate(ast: ast::Script, source: &str) -> Result<(), ()> {
     let (mut ir, ty_env) = lower::lower_ast(ast, source);
-    typecheck::typecheck(ir, ty_env, source);
+    typecheck::typecheck(ir, ty_env, source)?;
+    Ok(())
 }

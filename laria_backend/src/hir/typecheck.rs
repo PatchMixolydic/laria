@@ -40,16 +40,16 @@ impl<'src> Typecheck<'src> {
             .emit();
     }
 
-    fn check_script(mut self, mut script: Script) -> (Script, TypeEnvironment) {
+    fn check_script(mut self, mut script: Script) -> Result<(Script, TypeEnvironment), ()> {
         for function in &mut script.functions {
             self.check_function(function);
         }
 
         if self.failed {
-            todo!("typecheck failed")
+            Err(())
+        } else {
+            Ok((script, self.ty_env))
         }
-
-        (script, self.ty_env)
     }
 
     /// Convenience function wrapper for [`TypeEnvironment::unify`].
@@ -390,7 +390,7 @@ pub(super) fn typecheck<'src>(
     script: Script,
     ty_env: TypeEnvironment,
     source: &'src str,
-) -> (Script, TypeEnvironment) {
+) -> Result<(Script, TypeEnvironment), ()> {
     let typechecker = Typecheck::new(ty_env, source);
     typechecker.check_script(script)
 }
