@@ -10,6 +10,7 @@ pub mod features;
 mod hir;
 mod lexer;
 mod lower;
+mod name_resolution;
 mod parser;
 
 use laria_log::*;
@@ -71,9 +72,10 @@ pub fn compile_for_vm(
     };
 
     let tokens = lexer::lex(&source)?;
-    let ast = parser::parse(tokens, &source)?;
+    let mut ast = parser::parse(tokens, &source)?;
 
     if features.typecheck {
+        name_resolution::resolve(&mut ast);
         // TODO: consume the AST once `lower_to_vm`
         // is modified to consume IR
         match hir::validate(ast.clone(), &source) {

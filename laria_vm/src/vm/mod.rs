@@ -93,8 +93,8 @@ impl VM {
         };
 
         // TODO: temp
-        res.set_global("print", Value::NativeFn(native_print));
-        res.set_global("abort", Value::NativeFn(native_abort));
+        res.set_global("::root::print", Value::NativeFn(native_print));
+        res.set_global("::root::abort", Value::NativeFn(native_abort));
         res
     }
 

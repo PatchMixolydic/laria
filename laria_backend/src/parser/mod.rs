@@ -214,7 +214,7 @@ impl<'src> Parser<'src> {
             None
         };
 
-        let path = Path::new(PathSearchLocation::Local, vec![fn_name], name_span);
+        let path = Path::local_name(fn_name, name_span);
         Ok(FunctionDecl::new(path, args, return_type, header_span))
     }
 
@@ -330,7 +330,7 @@ impl<'src> Parser<'src> {
 
         match maybe_expr {
             Some(expr) => {
-                let path = Path::new(PathSearchLocation::Local, vec![name], name_span);
+                let path = Path::local_name(name, name_span);
 
                 Ok(Statement::new(
                     StatementKind::Declaration((path, ty), expr),
@@ -405,7 +405,7 @@ impl<'src> Parser<'src> {
         };
 
         let first_segment = self.expect_item(Expected::Ident)?.kind.unwrap_ident();
-        let mut segments = vec![first_segment];
+        let mut segments = vec![PathSegment::Named(first_segment, 0)];
 
         while self.eat(Expected::Symbol(Symbol::DoubleColon)) {
             if !self.check_next(Expected::Ident) {
@@ -414,7 +414,7 @@ impl<'src> Parser<'src> {
 
             let ident = self.expect_item(Expected::Ident)?;
             span.grow_to_contain(&ident.span);
-            segments.push(ident.kind.unwrap_ident());
+            segments.push(PathSegment::Named(ident.kind.unwrap_ident(), 1));
         }
 
         Ok(Path::new(location, segments, span))

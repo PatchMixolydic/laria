@@ -1,8 +1,8 @@
 extern fn print(msg: string);
-extern fn abort(msg: string) -> never;
+extern fn abort(msg: string) -> !;
 
 fn main() {
     print("Hello");
-    let x: i32 = abort("Goodbye");
+    let x: i64 = abort("Goodbye");
     print("Can anyone hear me?");
 }

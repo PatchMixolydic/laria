@@ -87,7 +87,7 @@ impl TypeEnvironment {
         ];
 
         fn path_for(segment: impl Into<String>) -> Path {
-            Path::new(vec![segment.into()], Span::empty())
+            Path::new(vec!["root".to_owned(), segment.into()], Span::empty())
         }
 
         let mut path_to_type_id = HashMap::new();

@@ -148,7 +148,7 @@ impl fmt::Display for Block {
 
 /// The search location for this path,
 /// given by its first segment.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum PathSearchLocation {
     /// The script root, denoted by `root`.
     Root,
@@ -162,20 +162,70 @@ pub enum PathSearchLocation {
     Local,
 }
 
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub enum PathSegment {
+    Named(String, u64),
+    Block(u64),
+}
+
+impl PathSegment {
+    pub const fn is_anonymous(&self) -> bool {
+        match self {
+            PathSegment::Block(_) => true,
+            PathSegment::Named(..) => false,
+        }
+    }
+
+    pub const fn disambiguator(&self) -> u64 {
+        match self {
+            PathSegment::Named(_, res) | PathSegment::Block(res) => *res,
+        }
+    }
+}
+
+impl fmt::Display for PathSegment {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            PathSegment::Named(name, _) => write!(f, "{}", name)?,
+            PathSegment::Block(_) => write!(f, "{{block}}")?,
+        }
+
+        if self.disambiguator() > 0 {
+            write!(f, "<{}>", self.disambiguator())?;
+        }
+
+        Ok(())
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Path {
     pub location: PathSearchLocation,
-    pub segments: Vec<String>,
+    pub segments: Vec<PathSegment>,
     pub span: Span,
 }
 
 impl Path {
-    pub const fn new(location: PathSearchLocation, segments: Vec<String>, span: Span) -> Self {
+    pub const fn new(location: PathSearchLocation, segments: Vec<PathSegment>, span: Span) -> Self {
         Self {
             location,
             segments,
             span,
         }
+    }
+
+    pub fn local_name(name: String, span: Span) -> Self {
+        Self {
+            location: PathSearchLocation::Local,
+            segments: vec![PathSegment::Named(name, 0)],
+            span,
+        }
+    }
+
+    pub fn unwrap_last_segment(&self) -> &PathSegment {
+        self.segments
+            .last()
+            .expect("called `unwrap_last_segment` on a path with no segments")
     }
 }
 
@@ -189,7 +239,15 @@ impl fmt::Display for Path {
             PathSearchLocation::Local => (),
         }
 
-        write!(f, "{}", self.segments.join("::"))
+        for (i, segment) in self.segments.iter().enumerate() {
+            write!(f, "{}", segment)?;
+
+            if self.segments.len() - 1 != i {
+                write!(f, "::")?;
+            }
+        }
+
+        Ok(())
     }
 }
 

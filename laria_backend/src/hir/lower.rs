@@ -145,7 +145,13 @@ impl<'src> LowerAst<'src> {
             _ => self.emit_unresolved_path_err(&path),
         }
 
-        hir_tree::Path::new(path.segments, path.span)
+        let segments = path
+            .segments
+            .into_iter()
+            .map(|segment| segment.to_string())
+            .collect();
+
+        hir_tree::Path::new(segments, path.span)
     }
 
     fn lower_statement(&mut self, statement: ast::Statement) -> hir_tree::Statement {
