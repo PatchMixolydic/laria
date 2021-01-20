@@ -125,7 +125,10 @@ impl<'src> LowerAst<'src> {
                 (hir_tree::TypeNameKind::Tuple(hir_contents), tuple_id)
             },
 
-            ast::TypeKind::Never => (hir_tree::TypeNameKind::Never, self.ty_env.add_type(Type::Never)),
+            ast::TypeKind::Never => (
+                hir_tree::TypeNameKind::Never,
+                self.ty_env.add_type(Type::Never),
+            ),
 
             ast::TypeKind::Path(ast_path) => {
                 let hir_path = self.lower_path(ast_path);
