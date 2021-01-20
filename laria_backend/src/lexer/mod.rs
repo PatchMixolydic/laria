@@ -222,8 +222,7 @@ impl<'src> Lexer<'src> {
                     self.chars.next();
                 },
 
-                Some((_, c)) => break,
-                None => break,
+                Some(_) | None => break,
             }
         }
     }
@@ -262,17 +261,20 @@ impl<'src> Lexer<'src> {
     fn consume_number(&mut self) -> Result<Token, LexError> {
         let start = self.chars.peek().unwrap().0;
         let mut num_str = String::new();
+        let mut float_detected = false;
 
-        while let Some((_, '0'..='9')) = self.chars.peek() {
+        loop {
+            match self.chars.peek() {
+                Some((_, '.' | 'e' | 'E')) => float_detected = true,
+                Some((_, c)) if c.is_numeric() => {},
+                Some((_, '_')) => continue,
+                Some(_) | None => break,
+            }
+
             num_str.push(self.chars.next().unwrap().1);
         }
 
-        let res = if let Some((_, '.' | 'e')) = self.chars.peek() {
-            // This is really a float! Keep going!
-            while let Some((_, '0'..='9' | 'e' | '.')) = self.chars.peek() {
-                num_str.push(self.chars.next().unwrap().1);
-            }
-
+        if float_detected {
             match num_str.parse::<f64>() {
                 Ok(res) => {
                     let token = Token::new(
@@ -282,10 +284,19 @@ impl<'src> Lexer<'src> {
                     Ok(token)
                 },
 
-                Err(err) => Err(LexError::CouldntParseFloat(num_str, err)),
+                Err(err) => {
+                    self.error_ctx
+                        .build_error_span(
+                            Span::new(start, num_str.len()),
+                            format!("could not parse {} as a float", num_str),
+                        )
+                        .note(format!("str::parse says: {}", err))
+                        .emit();
+
+                    Err(LexError::CouldntParseFloat(num_str, err))
+                },
             }
         } else {
-            // Oh! We're done
             match num_str.parse::<i64>() {
                 Ok(res) => {
                     let token = Token::new(
@@ -295,39 +306,18 @@ impl<'src> Lexer<'src> {
                     Ok(token)
                 },
 
-                Err(err) => Err(LexError::CouldntParseInt(num_str, err)),
+                Err(err) => {
+                    self.error_ctx
+                        .build_error_span(
+                            Span::new(start, num_str.len()),
+                            format!("could not parse {} as an integer", num_str),
+                        )
+                        .note(format!("str::parse says: {}", err))
+                        .emit();
+
+                    Err(LexError::CouldntParseInt(num_str, err))
+                },
             }
-        };
-
-        match res {
-            Ok(res) => Ok(res),
-
-            Err(LexError::CouldntParseFloat(num_str, source)) => {
-                self.error_ctx
-                    .build_error_span(
-                        Span::new(start, num_str.len()),
-                        format!("could not parse {} as a float", num_str),
-                    )
-                    .note(format!("str::parse says: {}", source))
-                    .emit();
-
-                Err(LexError::CouldntParseFloat(num_str, source))
-            },
-
-            // TODO: can this be deduplicated without losing ownership of num_str??
-            Err(LexError::CouldntParseInt(num_str, source)) => {
-                self.error_ctx
-                    .build_error_span(
-                        Span::new(start, num_str.len()),
-                        format!("could not parse {} as an integer", num_str),
-                    )
-                    .note(format!("str::parse says: {}", source))
-                    .emit();
-
-                Err(LexError::CouldntParseInt(num_str, source))
-            },
-
-            Err(_) => unreachable!(),
         }
     }
 
@@ -346,14 +336,6 @@ impl<'src> Lexer<'src> {
                     last_idx = idx;
 
                     match c {
-                        '"' if !escape => {
-                            break;
-                        },
-
-                        '\\' if !escape => {
-                            escape = true;
-                        },
-
                         _ if escape => {
                             match c {
                                 'n' => res_vec.push('\n'),
@@ -376,6 +358,14 @@ impl<'src> Lexer<'src> {
                             };
 
                             escape = false;
+                        },
+
+                        '"' => {
+                            break;
+                        },
+
+                        '\\' => {
+                            escape = true;
                         },
 
                         _ => res_vec.push(c),
