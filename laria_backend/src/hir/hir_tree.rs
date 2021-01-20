@@ -45,7 +45,7 @@ impl FunctionDecl {
         ret_type: TypeId,
         span: Span,
     ) -> Self {
-        let fn_type = ty_env.get_or_add_type(Type::Function(args_type, ret_type));
+        let fn_type = ty_env.add_type(Type::Function(args_type, ret_type));
 
         Self {
             name,

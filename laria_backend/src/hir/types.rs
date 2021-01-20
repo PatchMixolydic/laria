@@ -58,6 +58,7 @@ impl Type {
 }
 
 /// Holds information on the type universe.
+#[derive(Debug)]
 pub(super) struct TypeEnvironment {
     type_id_to_type: Vec<Type>,
     // Let's assume name resolution was done already,
@@ -70,16 +71,7 @@ pub(super) struct TypeEnvironment {
 }
 
 impl TypeEnvironment {
-    // NOTE: please keep in sync with `new`
-    pub(super) const INTEGER_ID: TypeId = 0;
-    pub(super) const BOOLEAN_ID: TypeId = 1;
-    pub(super) const FLOAT_ID: TypeId = 2;
-    pub(super) const STRING_ID: TypeId = 3;
-    pub(super) const NEVER_ID: TypeId = 4;
-    pub(super) const UNIT_ID: TypeId = 5;
-
     pub(super) fn new() -> Self {
-        // NOTE: please keep in sync with above consts
         let type_id_to_type = vec![
             Type::Integer,
             Type::Boolean,
@@ -96,16 +88,9 @@ impl TypeEnvironment {
         }
     }
 
-    /// Gets the given type or adds to the universe if it doesn't exist.
+    /// Adds the given type to the universe.
     /// Returns the type's [`TypeId`].
-    pub(super) fn get_or_add_type(&mut self, ty: Type) -> TypeId {
-        // TODO: might be slow
-        for i in 0..self.type_id_to_type.len() {
-            if self.type_id_to_type[i] == ty {
-                return i;
-            }
-        }
-
+    pub(super) fn add_type(&mut self, ty: Type) -> TypeId {
         self.type_id_to_type.push(ty);
         self.type_id_to_type.len() - 1
     }
@@ -115,7 +100,7 @@ impl TypeEnvironment {
     pub(super) fn add_new_type_variable(&mut self) -> TypeId {
         let ty = Type::Variable(self.next_type_var_id);
         self.next_type_var_id += 1;
-        self.get_or_add_type(ty)
+        self.add_type(ty)
     }
 
     /// Given a [`TypeId`], get the concrete type from this environment.

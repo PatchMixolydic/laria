@@ -41,13 +41,13 @@ impl LowerAst {
     /// Temporary hack to add a type to the environment by name.
     fn add_type_by_name(&mut self, name: String) -> TypeId {
         match name.as_str() {
-            "i32" | "i64" => self.ty_env.get_or_add_type(Type::Integer),
-            "bool" => self.ty_env.get_or_add_type(Type::Boolean),
-            "f32" | "f64" => self.ty_env.get_or_add_type(Type::Float),
-            "String" => self.ty_env.get_or_add_type(Type::String),
+            "i32" | "i64" => self.ty_env.add_type(Type::Integer),
+            "bool" => self.ty_env.add_type(Type::Boolean),
+            "f32" | "f64" => self.ty_env.add_type(Type::Float),
+            "String" => self.ty_env.add_type(Type::String),
             // TODO: should be `!`
-            "never" => self.ty_env.get_or_add_type(Type::Never),
-            "()" => self.ty_env.get_or_add_type(Type::unit()),
+            "never" => self.ty_env.add_type(Type::Never),
+            "()" => self.ty_env.add_type(Type::unit()),
             _ => todo!("unknown type `{}`", name),
         }
     }
@@ -61,12 +61,12 @@ impl LowerAst {
             arg_types.push(self.add_type_by_name(arg_type));
         }
 
-        let args_list_type = self.ty_env.get_or_add_type(Type::Tuple(arg_types));
+        let args_list_type = self.ty_env.add_type(Type::Tuple(arg_types));
         // TODO: fix when paths are added
         let return_type = self.add_type_by_name(header.return_type.unwrap_or("()".to_owned()));
         let fn_type = self
             .ty_env
-            .get_or_add_type(Type::Function(args_list_type, return_type));
+            .add_type(Type::Function(args_list_type, return_type));
 
         let type_id_for_fn_name = self.ty_env.type_id_for_ident(&header.name);
         // Should be infallible since a variable should've just been created
