@@ -34,6 +34,8 @@ pub enum LariaError {
     LexError(#[source] LexError),
     #[error("{0}")]
     ParseError(#[source] ParseError),
+    #[error("encountered an error during name resolution")]
+    NameResolutionError,
     #[error("encountered an error during validation")]
     ValidationError,
 }
@@ -75,7 +77,11 @@ pub fn compile_for_vm(
     let mut ast = parser::parse(tokens, &source)?;
 
     if features.typecheck {
-        name_resolution::resolve(&mut ast);
+        match name_resolution::resolve(&mut ast, &source) {
+            Ok(_) => {},
+            Err(_) => return Err(LariaError::NameResolutionError),
+        }
+
         // TODO: consume the AST once `lower_to_vm`
         // is modified to consume IR
         match hir::validate(ast.clone(), &source) {

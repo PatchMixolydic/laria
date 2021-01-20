@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 
 use crate::{
-    errors::Span,
+    errors::{DiagnosticsContext, Span},
     parser::ast::{
         Block, Expression, ExpressionKind, FunctionDef, PartialArg, Path, PathSearchLocation,
         PathSegment, Script, Statement, StatementKind, Type, TypeKind,
     },
 };
 
-struct ResolveState {
+struct ResolveState<'src> {
     current_path: Path,
     /// Each scope is a segment in the current path
     /// and maps an identifier in that scope to an
@@ -16,14 +16,18 @@ struct ResolveState {
     // TODO: Vec<HashMap<..>> seems odd
     scopes: Vec<HashMap<String, Path>>,
     blocks_in_scope: Vec<u64>,
+    failed: bool,
+    error_ctx: DiagnosticsContext<'src>,
 }
 
-impl ResolveState {
-    const fn new() -> Self {
+impl<'src> ResolveState<'src> {
+    fn new(source: &'src str) -> Self {
         Self {
             current_path: Path::new(PathSearchLocation::Absolute, Vec::new(), Span::empty()),
             scopes: Vec::new(),
             blocks_in_scope: Vec::new(),
+            failed: false,
+            error_ctx: DiagnosticsContext::new(source, None),
         }
     }
 
@@ -65,7 +69,7 @@ impl ResolveState {
         real_path
     }
 
-    fn lookup(&self, path: &Path) -> Path {
+    fn lookup(&mut self, path: &Path) -> Path {
         match path.location {
             PathSearchLocation::Root => todo!("root lookup"),
             PathSearchLocation::Super => todo!("super lookup"),
@@ -93,7 +97,21 @@ impl ResolveState {
                             None => continue,
                         },
 
-                        None => todo!("lookup failed for {}", name),
+                        None => {
+                            self.error_ctx
+                                .build_error_span(
+                                    path.span,
+                                    format!("couldn't find `{}` in this scope", path),
+                                )
+                                .emit();
+                            self.failed = true;
+
+                            // Return fake result
+                            return Path::local_name(
+                                "!failed_lookup_recovery".to_owned(),
+                                path.span,
+                            );
+                        },
                     }
                 };
 
@@ -102,7 +120,8 @@ impl ResolveState {
         }
     }
 
-    fn resolve(mut self, ast: &mut Script) {
+    /// Run the name resolution pass on the AST.
+    fn resolve(mut self, ast: &mut Script) -> Result<(), ()> {
         // TODO: get script name
         self.push_scope(PathSegment::Named("root".to_owned(), 0));
         self.add_local(PathSegment::Named("i64".to_owned(), 0));
@@ -132,6 +151,12 @@ impl ResolveState {
         // ...then resolve each one
         for function in &mut ast.functions {
             self.resolve_function(function);
+        }
+
+        if self.failed {
+            Err(())
+        } else {
+            Ok(())
         }
     }
 
@@ -270,6 +295,6 @@ impl ResolveState {
     }
 }
 
-pub(crate) fn resolve(ast: &mut Script) {
-    ResolveState::new().resolve(ast);
+pub(crate) fn resolve(ast: &mut Script, source: &str) -> Result<(), ()> {
+    ResolveState::new(source).resolve(ast)
 }
