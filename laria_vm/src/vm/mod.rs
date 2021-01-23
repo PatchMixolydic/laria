@@ -93,8 +93,8 @@ impl VM {
         };
 
         // TODO: temp
-        res.set_global("::root::print", Value::NativeFn(native_print));
-        res.set_global("::root::abort", Value::NativeFn(native_abort));
+        res.set_global("print", Value::NativeFn(native_print));
+        res.set_global("abort", Value::NativeFn(native_abort));
         res
     }
 
@@ -209,14 +209,31 @@ impl VM {
         Ok(())
     }
 
-    pub fn set_global(&mut self, name: impl Into<String>, value: Value) {
-        self.script.globals.insert(name.into(), value);
+    fn qualify_path_str(&self, name: impl AsRef<str>) -> String {
+        let name_ref = name.as_ref();
+
+        if name_ref.starts_with("::") {
+            // This is an absolute path
+            name_ref.to_owned()
+        } else {
+            // Assume that this is a top-level path
+            // TODO: is this good enough?
+            format!("::root::{}", name_ref)
+        }
     }
 
-    pub fn get_global(&self, name: &str) -> Result<&Value, VMError> {
+    pub fn set_global(&mut self, name: impl AsRef<str>, value: Value) {
         self.script
             .globals
-            .get(name)
-            .ok_or_else(|| VMError::NoSuchGlobal(name.into()))
+            .insert(self.qualify_path_str(name), value);
+    }
+
+    pub fn get_global(&self, name: impl AsRef<str>) -> Result<&Value, VMError> {
+        let name = self.qualify_path_str(name);
+
+        self.script
+            .globals
+            .get(&name)
+            .ok_or_else(|| VMError::NoSuchGlobal(name))
     }
 }

@@ -133,7 +133,7 @@ fn main() {
 
         let mut vm = VM::new(script, args.trace_execution);
 
-        let main_fn = match vm.get_global("::root::main") {
+        let main_fn = match vm.get_global("main") {
             Ok(res @ (Value::Subroutine(_) | Value::NativeFn(_))) => res.clone(),
 
             Ok(res_wrong_type) => {
