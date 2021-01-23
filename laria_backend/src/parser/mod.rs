@@ -6,7 +6,7 @@ mod keyword;
 mod tests;
 
 use anyhow::Result;
-use std::{collections::HashSet, convert::TryFrom, iter::Peekable, vec};
+use std::{collections::HashSet, iter::Peekable, vec};
 use thiserror::Error;
 
 use self::{
@@ -30,35 +30,6 @@ pub enum ParseError {
     ValueTooLarge,
     #[error("A function that takes too many arguments was defined")]
     TooManyArgsOnFnDef,
-}
-
-/// Used to deduplicate the bodies of Parser::expect_and_unwrap_{type}.
-/// This only generates the body, as using macros to generate functions
-/// tends to mess with language server (ex. rust-analyzer) and IDE
-/// autocompletions.
-macro_rules! expect_and_unwrap_body {
-    ($typ:ty, $self:ident, $name:ident) => {{
-        let token = $self.expect_item(Expected::Literal(ExpectLiteral::Integer))?;
-        let span = token.span;
-        let value = token.kind.unwrap_integer();
-
-        match <$typ>::try_from(value) {
-            Ok(res) => Ok(res),
-
-            Err(_) => {
-                $self
-                    .error_ctx
-                    .build_error(format!(
-                        concat!("{} does not fit into a ", stringify!($typ)),
-                        $name
-                    ))
-                    .span_label(span, concat!("must fit in a ", stringify!($typ)))
-                    .emit();
-
-                return Err(ParseError::ValueTooLarge);
-            },
-        }
-    }};
 }
 
 /// Holds the parser's state.
@@ -160,18 +131,6 @@ impl<'src> Parser<'src> {
             // which shouldn't be possible if the next token is `None`
             Ok(self.bump().unwrap())
         }
-    }
-
-    /// Expects the next token to be an integer that can fit into a u16.
-    /// Returns `Err(ParseError)` if this is not the case.
-    fn expect_and_unwrap_u16(&mut self, name: &'static str) -> Result<u16, ParseError> {
-        expect_and_unwrap_body!(u16, self, name)
-    }
-
-    /// Expects the next token to be an integer that can fit into a u32.
-    /// Returns `Err(ParseError)` if this is not the case.
-    fn expect_and_unwrap_u32(&mut self, name: &'static str) -> Result<u32, ParseError> {
-        expect_and_unwrap_body!(u32, self, name)
     }
 
     /// The entry point for the parser.
