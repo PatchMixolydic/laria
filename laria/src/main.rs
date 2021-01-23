@@ -144,8 +144,8 @@ fn main() {
                 exit(2);
             },
 
-            Err(err) => {
-                error!("no main function found: {}", err);
+            Err(_) => {
+                error!("no main function found");
                 exit(2);
             },
         };
