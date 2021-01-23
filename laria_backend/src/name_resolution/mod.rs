@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use crate::{
     errors::{DiagnosticsContext, Span},
     parser::ast::{
-        Block, Expression, ExpressionKind, FunctionDef, PartialArg, Path, PathSearchLocation,
-        PathSegment, Script, Statement, StatementKind, Type, TypeKind,
+        Block, Expression, ExpressionKind, FunctionDecl, FunctionDef, PartialArg, Path,
+        PathSearchLocation, PathSegment, Script, Statement, StatementKind, Type, TypeKind,
     },
 };
 
@@ -130,19 +130,14 @@ impl<'src> ResolveState<'src> {
         self.add_local(PathSegment::Named("string".to_owned(), 0));
 
         for extern_fn in &mut ast.extern_fns {
-            let path = self.add_local(extern_fn.header.name.unwrap_last_segment().to_owned());
-            extern_fn.header.name = path;
-
-            for (_, ty) in &mut extern_fn.header.arguments {
-                self.resolve_type(ty);
-            }
-
-            if let Some(return_type) = &mut extern_fn.header.return_type {
-                self.resolve_type(return_type);
-            }
+            extern_fn.header.name =
+                self.add_local(extern_fn.header.name.unwrap_last_segment().to_owned());
+            self.resolve_fn_header(&mut extern_fn.header);
+            self.pop_scope();
         }
 
-        // First, add all functions into the current scope...
+        // First, add all functions into the current scope (since they may be
+        // mutually dependent)...
         for function in &mut ast.functions {
             function.header.name =
                 self.add_local(function.header.name.unwrap_last_segment().to_owned());
@@ -166,24 +161,30 @@ impl<'src> ResolveState<'src> {
         }
     }
 
-    fn resolve_function(&mut self, function: &mut FunctionDef) {
+    /// Resolves the name of a function, its arguments, and its types.
+    /// Pushes a new scope for this function, which the caller is
+    /// responsible for popping.
+    fn resolve_fn_header(&mut self, header: &mut FunctionDecl) {
         // We have to make two passes over the arguments:
         // one to look up the types and one to add the arguments
         // to the function scope
-        for (_, ty) in &mut function.header.arguments {
+        for (_, ty) in &mut header.arguments {
             self.resolve_type(ty);
         }
 
-        if let Some(return_type) = &mut function.header.return_type {
+        if let Some(return_type) = &mut header.return_type {
             self.resolve_type(return_type);
         }
 
-        self.push_scope(function.header.name.unwrap_last_segment().to_owned());
+        self.push_scope(header.name.unwrap_last_segment().to_owned());
 
-        for (name, _) in &function.header.arguments {
-            self.add_local(PathSegment::Named(name.to_owned(), 0));
+        for (name, _) in &mut header.arguments {
+            *name = self.add_local(name.unwrap_last_segment().to_owned());
         }
+    }
 
+    fn resolve_function(&mut self, function: &mut FunctionDef) {
+        self.resolve_fn_header(&mut function.header);
         self.resolve_block(&mut function.body);
         self.pop_scope();
     }

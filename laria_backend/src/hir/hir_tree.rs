@@ -24,7 +24,7 @@ impl Script {
 #[derive(Clone, Debug)]
 pub(super) struct FunctionDecl {
     pub(super) path: Path,
-    pub(super) arg_names: Vec<String>,
+    pub(super) arg_names: Vec<Path>,
     /// This should be a [`Tuple`] containing the argument types.
     ///
     /// [`Tuple`]: Type::Tuple
@@ -43,7 +43,7 @@ impl FunctionDecl {
     pub(super) fn new(
         ty_env: &mut TypeEnvironment,
         path: Path,
-        arg_names: Vec<String>,
+        arg_names: Vec<Path>,
         args_type: TypeId,
         ret_type: TypeId,
         span: Span,

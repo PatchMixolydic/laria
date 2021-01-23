@@ -83,7 +83,7 @@ impl Lower {
         self.locals_stack.push(String::new());
 
         for (name, _) in &function.header.arguments {
-            self.locals_stack.push(name.to_owned());
+            self.locals_stack.push(name.to_string());
         }
 
         self.lower_expression(function.body.into());

@@ -167,11 +167,16 @@ impl<'src> Parser<'src> {
         let mut args = Vec::new();
 
         while !self.check_next(Expected::CloseDelim(DelimKind::Paren)) {
-            let arg_name = self.expect_item(Expected::Ident)?.kind.unwrap_ident();
+            let (arg_name, span) = {
+                let token = self.expect_item(Expected::Ident)?;
+                let span = token.span;
+                (token.kind.unwrap_ident(), span)
+            };
+
             self.expect_item(Expected::Symbol(Symbol::Colon))?;
             let arg_type = self.parse_type()?;
 
-            args.push((arg_name, arg_type));
+            args.push((Path::local_name(arg_name, span), arg_type));
 
             if !self.check_next(Expected::Symbol(Symbol::Comma))
                 && !self.check_next(Expected::CloseDelim(DelimKind::Paren))

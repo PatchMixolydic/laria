@@ -53,7 +53,7 @@ impl<'src> LowerAst<'src> {
         let mut arg_types = Vec::new();
 
         for (arg_name, arg_type) in header.arguments {
-            arg_names.push(arg_name);
+            arg_names.push(self.lower_path(arg_name));
             let (_, type_id) = self.lower_type(arg_type);
             arg_types.push(type_id);
         }

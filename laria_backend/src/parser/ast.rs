@@ -38,7 +38,7 @@ impl fmt::Display for Script {
 #[derive(Clone, Debug)]
 pub struct FunctionDecl {
     pub name: Path,
-    pub arguments: Vec<(String, Type)>,
+    pub arguments: Vec<(Path, Type)>,
     pub return_type: Option<Type>,
     pub span: Span,
 }
@@ -46,7 +46,7 @@ pub struct FunctionDecl {
 impl FunctionDecl {
     pub fn new(
         name: Path,
-        arguments: Vec<(String, Type)>,
+        arguments: Vec<(Path, Type)>,
         return_type: Option<Type>,
         span: Span,
     ) -> Self {
