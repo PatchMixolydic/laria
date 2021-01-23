@@ -1,0 +1,15 @@
+extern fn print(s: string);
+
+fn f() {
+    print("f!");
+}
+
+fn g(x: i64, y: i64, z: i64) {
+    z == z;
+}
+
+fn main() {
+    print("main!");
+    f();
+    g(1, 2, 3);
+}

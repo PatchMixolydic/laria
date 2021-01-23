@@ -44,7 +44,7 @@ impl LowerAst {
             "i32" | "i64" => self.ty_env.add_type(Type::Integer),
             "bool" => self.ty_env.add_type(Type::Boolean),
             "f32" | "f64" => self.ty_env.add_type(Type::Float),
-            "String" => self.ty_env.add_type(Type::String),
+            "string" => self.ty_env.add_type(Type::String),
             // TODO: should be `!`
             "never" => self.ty_env.add_type(Type::Never),
             "()" => self.ty_env.add_type(Type::unit()),
