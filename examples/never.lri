@@ -1,5 +1,5 @@
-extern fn print(msg: String);
-extern fn abort(msg: String) -> never;
+extern fn print(msg: string);
+extern fn abort(msg: string) -> never;
 
 fn main() {
     print("Hello");

@@ -1,4 +1,4 @@
-extern fn print(s: String);
+extern fn print(s: string);
 
 fn main() {
     // TODO: test tuple types
