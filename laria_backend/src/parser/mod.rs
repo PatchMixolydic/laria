@@ -37,7 +37,7 @@ struct Parser<'src> {
     tokens: Peekable<vec::IntoIter<Token>>,
     /// A set of expected tokens for diagnostic purposes.
     /// This is to allow for diagnostics such as
-    /// `expected keyword 'spritesheet', got 'rickrolled'`.
+    /// `expected keyword 'loop', got 'rickrolled'`.
     expected_items: HashSet<Expected>,
     error_ctx: DiagnosticsContext<'src>,
 }
@@ -112,7 +112,6 @@ impl<'src> Parser<'src> {
     fn eat(&mut self, kind_to_eat: Expected) -> bool {
         // May I eat the one standing before me?
         let res = self.check_next(kind_to_eat);
-
         if res {
             // Is that soooo?
             self.bump();

@@ -17,7 +17,7 @@ impl VM {
     pub fn tick(&mut self) -> Result<VMStatus, VMError> {
         /// Handles the boilerplate for a one argument instruction.
         /// Pops an argument from the stack. If it is
-        /// `Some`, this binds the argument to `$x` and
+        /// `Some`, this binds the argument to `$name` and
         /// executes `$exp`. Otherwise, this returns
         /// `VMError::NotEnoughValues`.
         macro_rules! one_arg {
