@@ -2,10 +2,17 @@ pub mod tick;
 
 use core::panic;
 use laria_log::*;
-use std::str::Utf8Error;
+use std::{array, str::Utf8Error};
 use thiserror::Error;
 
-use crate::{stack_frame::StackFrame, value::Value, Flags, Script};
+use crate::{stack_frame::StackFrame, subroutine::Subroutine, value::Value, Flags, Script};
+
+#[derive(Clone, Debug)]
+pub enum VMStatus {
+    Running,
+    Return(Value),
+    Halted,
+}
 
 #[derive(Clone, Debug, Error)]
 pub enum VMError {
@@ -89,7 +96,78 @@ impl VM {
         res
     }
 
-    fn call(&mut self) -> Result<(), VMError> {
+    fn jump_to_subroutine(
+        &mut self,
+        sub: Subroutine,
+        arity: usize,
+        stack_base: usize,
+    ) -> Result<(), VMError> {
+        if sub.num_arguments() as usize != arity {
+            return Err(VMError::WrongNumArguments {
+                expected: sub.num_arguments() as usize,
+                found: arity,
+            });
+        }
+
+        if sub.start_address() > self.script.instructions.len() {
+            return Err(VMError::OutOfBoundsJump {
+                pc: self.program_counter,
+                script_len: self.script.instructions.len(),
+            });
+        }
+
+        // Get the return address now.
+        // Pushing the stack frame first would take
+        // a mutable reference to `self.stack_frames`,
+        // which is not allowed since we have an immutable
+        // reference to `self.globals`.
+        let return_address = self.program_counter;
+
+        self.program_counter = sub.start_address();
+        self.stack_frames
+            .push(StackFrame::new(stack_base, return_address));
+
+        Ok(())
+    }
+
+    pub fn call<const ARITY: usize>(
+        &mut self,
+        maybe_func: Value,
+        args: [Value; ARITY],
+    ) -> Result<Value, VMError> {
+        self.stack.push(maybe_func);
+        let stack_base = self.stack.len() - 1;
+
+        for arg in array::IntoIter::new(args) {
+            self.stack.push(arg);
+        }
+
+        match self.stack[stack_base] {
+            Value::Subroutine(ref sub) => {
+                let sub = sub.clone();
+                self.jump_to_subroutine(sub, ARITY, stack_base)?;
+            },
+
+            Value::NativeFn(f) => {
+                let res = f(&mut self.stack);
+                self.stack.pop();
+                return Ok(res);
+            },
+
+            _ => return Err(VMError::WrongType),
+        }
+
+        // If we called a subroutine, we need to drive it to completion
+        loop {
+            match self.tick()? {
+                VMStatus::Running => {},
+                VMStatus::Return(res) => return Ok(res),
+                VMStatus::Halted => todo!("halted in VM::call"),
+            }
+        }
+    }
+
+    fn handle_branch_op(&mut self) -> Result<(), VMError> {
         // All call functions take the number of function arguments
         // as an operand
         let arity = self.script.instructions[self.program_counter] as usize;
@@ -108,30 +186,8 @@ impl VM {
         let stack_base = self.stack.len() - 1 - arity;
         match self.stack[stack_base] {
             Value::Subroutine(ref sub) => {
-                if sub.num_arguments() as usize != arity {
-                    return Err(VMError::WrongNumArguments {
-                        expected: sub.num_arguments() as usize,
-                        found: arity,
-                    });
-                }
-
-                if sub.start_address() > self.script.instructions.len() {
-                    return Err(VMError::OutOfBoundsJump {
-                        pc: self.program_counter,
-                        script_len: self.script.instructions.len(),
-                    });
-                }
-
-                // Get the return address now.
-                // Pushing the stack frame first would take
-                // a mutable reference to `self.stack_frames`,
-                // which is not allowed since we have an immutable
-                // reference to `self.globals`.
-                let return_address = self.program_counter;
-
-                self.program_counter = sub.start_address();
-                self.stack_frames
-                    .push(StackFrame::new(stack_base, return_address));
+                let sub = sub.clone();
+                self.jump_to_subroutine(sub, arity, stack_base)?;
             },
 
             Value::NativeFn(f) => {

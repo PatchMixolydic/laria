@@ -1,6 +1,8 @@
+#![feature(or_patterns)]
+
 use laria_backend::{compile_for_vm, features::compiler::UnstableFeatures};
 use laria_log::*;
-use laria_vm::vm::VM;
+use laria_vm::{value::Value, vm::VM};
 use pico_args::Arguments;
 use rustc_version_runtime::version_meta;
 use std::{
@@ -130,15 +132,34 @@ fn main() {
 
         let mut vm = VM::new(script, args.trace_execution);
 
-        loop {
-            match vm.tick() {
-                Ok(_) => (),
+        let main_fn = match vm.get_global("main") {
+            Ok(res @ (Value::Subroutine(_) | Value::NativeFn(_))) => res.clone(),
 
-                Err(err) => {
-                    error!("{}", err);
-                    break;
-                },
-            }
-        }
+            Ok(res_wrong_type) => {
+                error!(
+                    "no main function found (but there is a {} named `main`)",
+                    res_wrong_type.kind()
+                );
+                error!("`main` must be a function");
+                exit(2);
+            },
+
+            Err(err) => {
+                error!("no main function found: {}", err);
+                exit(2);
+            },
+        };
+
+        match vm.call(main_fn, []) {
+            Ok(Value::Unit) => {},
+
+            Ok(res) => {
+                info!("returned `{}`", res);
+            },
+
+            Err(err) => {
+                error!("vm error: {}", err);
+            },
+        };
     }
 }

@@ -3,7 +3,7 @@
 use laria_log::*;
 use num_traits::FromPrimitive;
 
-use super::{VMError, VM};
+use super::{VMError, VMStatus, VM};
 use crate::{instructions::Instruction, value::FromBytesError, value::Value, Flags};
 
 impl VM {
@@ -14,7 +14,7 @@ impl VM {
     // caused the code here to blow up.
     // Perhaps there's some way to work around this?
 
-    pub fn tick(&mut self) -> Result<(), VMError> {
+    pub fn tick(&mut self) -> Result<VMStatus, VMError> {
         /// Handles the boilerplate for a one argument instruction.
         /// Pops an argument from the stack. If it is
         /// `Some`, this binds the argument to `$x` and
@@ -564,7 +564,7 @@ impl VM {
                 self.program_counter = address;
             }),
 
-            Instruction::JumpSubroutine => self.call()?,
+            Instruction::JumpSubroutine => self.handle_branch_op()?,
 
             Instruction::Return => one_arg!(ret_val => {
                 let old_frame = self
@@ -576,14 +576,18 @@ impl VM {
                     trace!("returned {:?}", ret_val);
                 }
 
-                if self.stack_frames.is_empty() {
-                    // TODO: might be temporary
-                    return Err(VMError::ReturnFromTopLevel(ret_val));
-                }
-
                 self.stack.truncate(old_frame.stack_base);
-                self.stack.push(ret_val);
                 self.program_counter = old_frame.return_address;
+
+
+                if self.stack_frames.is_empty() {
+                    return Err(VMError::ReturnFromTopLevel(ret_val));
+                } else if self.stack_frames.len() == 1 {
+                    // This is the entry point
+                    return Ok(VMStatus::Return(ret_val));
+                } else {
+                    self.stack.push(ret_val);
+                }
             }),
 
             Instruction::Halt => todo!("halt"),
@@ -712,6 +716,6 @@ impl VM {
             }),
         };
 
-        Ok(())
+        Ok(VMStatus::Running)
     }
 }
