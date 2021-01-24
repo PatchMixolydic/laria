@@ -76,12 +76,12 @@ pub fn compile_for_vm(
     let tokens = lexer::lex(&source)?;
     let mut ast = parser::parse(tokens, &source)?;
 
-    if features.typecheck {
-        match name_resolution::resolve(&mut ast, &source) {
-            Ok(_) => {},
-            Err(_) => return Err(LariaError::NameResolutionError),
-        }
+    match name_resolution::resolve(&mut ast, &source) {
+        Ok(_) => {},
+        Err(_) => return Err(LariaError::NameResolutionError),
+    }
 
+    if features.typecheck {
         // TODO: consume the AST once `lower_to_vm`
         // is modified to consume IR
         match hir::validate(ast.clone(), &source) {
