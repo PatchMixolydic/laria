@@ -96,6 +96,17 @@ impl VM {
         res
     }
 
+    pub fn run(&mut self) -> Result<Value, VMError> {
+        // If we called a subroutine, we need to drive it to completion
+        loop {
+            match self.tick()? {
+                VMStatus::Running => {},
+                VMStatus::Return(res) => return Ok(res),
+                VMStatus::Halted => todo!("halted in VM::run"),
+            }
+        }
+    }
+
     fn jump_to_subroutine(
         &mut self,
         sub: Subroutine,
@@ -134,7 +145,7 @@ impl VM {
         &mut self,
         maybe_func: Value,
         args: [Value; ARITY],
-    ) -> Result<Value, VMError> {
+    ) -> Result<VMStatus, VMError> {
         self.stack.push(maybe_func);
         let stack_base = self.stack.len() - 1;
 
@@ -151,20 +162,13 @@ impl VM {
             Value::NativeFn(f) => {
                 let res = f(&mut self.stack);
                 self.stack.pop();
-                return Ok(res);
+                return Ok(VMStatus::Return(res));
             },
 
             _ => return Err(VMError::WrongType),
         }
 
-        // If we called a subroutine, we need to drive it to completion
-        loop {
-            match self.tick()? {
-                VMStatus::Running => {},
-                VMStatus::Return(res) => return Ok(res),
-                VMStatus::Halted => todo!("halted in VM::call"),
-            }
-        }
+        Ok(VMStatus::Running)
     }
 
     fn handle_branch_op(&mut self) -> Result<(), VMError> {

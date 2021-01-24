@@ -2,7 +2,10 @@
 
 use laria_backend::{compile_for_vm, features::compiler::UnstableFeatures};
 use laria_log::*;
-use laria_vm::{value::Value, vm::VM};
+use laria_vm::{
+    value::Value,
+    vm::{VMStatus, VM},
+};
 use pico_args::Arguments;
 use rustc_version_runtime::version_meta;
 use std::{
@@ -150,8 +153,18 @@ fn main() {
             },
         };
 
-        match vm.call(main_fn, []) {
-            Ok(Value::Unit) => {},
+        let status = vm.call(main_fn, []).and_then(|status| match status {
+            VMStatus::Running => vm.run(),
+            VMStatus::Return(val) => Ok(val),
+
+            VMStatus::Halted => {
+                error!("vm halted after calling main function");
+                exit(2);
+            },
+        });
+
+        match status {
+            Ok(Value::Unit) => return,
 
             Ok(res) => {
                 info!("returned `{}`", res);
@@ -160,6 +173,6 @@ fn main() {
             Err(err) => {
                 error!("vm error: {}", err);
             },
-        };
+        }
     }
 }
