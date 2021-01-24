@@ -55,6 +55,10 @@ impl VM {
             };
         }
 
+        if self.halted {
+            return Ok(VMStatus::Halted);
+        }
+
         if self.trace_execution {
             trace!("---------- new instruction ----------");
             trace!("stack {:#?}", self.stack);
@@ -581,16 +585,22 @@ impl VM {
 
 
                 if self.stack_frames.is_empty() {
+                    self.halted = true;
                     return Err(VMError::ReturnFromTopLevel(ret_val));
                 } else if self.stack_frames.len() == 1 {
                     // This is the entry point
+                    self.halted = true;
                     return Ok(VMStatus::Return(ret_val));
                 } else {
                     self.stack.push(ret_val);
                 }
             }),
 
-            Instruction::Halt => todo!("halt"),
+            Instruction::Halt => {
+                self.halted = true;
+                return Ok(VMStatus::Halted);
+            },
+
             Instruction::Wait => todo!("wait"),
 
             Instruction::GetGlobal => one_arg!(maybe_name => {

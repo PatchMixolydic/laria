@@ -50,6 +50,7 @@ pub struct VM {
     program_counter: usize,
     stack: Vec<Value>,
     stack_frames: Vec<StackFrame>,
+    halted: bool,
     /// Enables extra output which may be helpful
     /// for debugging the VM
     trace_execution: bool,
@@ -87,6 +88,7 @@ impl VM {
             program_counter: 0,
             stack: Vec::new(),
             stack_frames,
+            halted: true,
             trace_execution,
         };
 
@@ -157,6 +159,7 @@ impl VM {
             Value::Subroutine(ref sub) => {
                 let sub = sub.clone();
                 self.jump_to_subroutine(sub, ARITY, stack_base)?;
+                self.halted = false;
             },
 
             Value::NativeFn(f) => {
