@@ -143,8 +143,7 @@ impl TypeEnvironment {
             | (Type::Float, Type::Float)
             | (Type::String, Type::String) => {},
 
-            // `!` subtypes everything, so any type should unify to `!`
-            (_, Type::Never) => self.type_id_to_type[first_id] = Type::Never,
+            // `!` subtypes everything, so any type should unify with `!`
             (Type::Never, _) => self.type_id_to_type[second_id] = Type::Never,
 
             (Type::Function(params_id_1, ret_id_1), Type::Function(params_id_2, ret_id_2)) => {

@@ -1,3 +1,5 @@
+extern fn print(s: never);
+
 fn main() {
     print("About to call f");
     f();
