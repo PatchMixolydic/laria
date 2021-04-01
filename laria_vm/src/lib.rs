@@ -1,7 +1,5 @@
 #![allow(clippy::comparison_chain)]
 #![allow(unused)]
-#![feature(array_value_iter)]
-#![feature(or_patterns)]
 #![warn(unused_imports)]
 #![warn(unused_must_use)]
 

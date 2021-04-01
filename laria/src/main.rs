@@ -1,5 +1,3 @@
-#![feature(or_patterns)]
-
 use laria_backend::{compile_for_vm, features::compiler::UnstableFeatures};
 use laria_log::*;
 use laria_vm::{
