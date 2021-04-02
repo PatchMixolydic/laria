@@ -1,4 +1,4 @@
-pub use colored::Colorize;
+pub use colorful::{Color, Colorful};
 
 /// Internal macro used to deduplicate logic.
 /// Please do not use this. This is an implementation
@@ -12,7 +12,7 @@ macro_rules! log {
     (($name:ident, $colour:ident) => $fmt:literal $(,)?) => {{
         eprintln!(
             "{} {}: {}",
-            concat!("[", file!(), ":", line!(), "]").yellow(),
+            concat!("[", file!(), ":", line!(), "]").light_yellow(),
             stringify!($name).$colour().bold(),
             $fmt
         );
@@ -21,7 +21,7 @@ macro_rules! log {
     (($name:ident, $colour:ident) => $fmt:literal, $($arg:expr),* $(,)?) => {{
         eprintln!(
             "{} {}: {}",
-            concat!("[", file!(), ":", line!(), "]").yellow(),
+            concat!("[", file!(), ":", line!(), "]").light_yellow(),
             stringify!($name).$colour().bold(),
             format!($fmt, $($arg),*)
         );
@@ -52,7 +52,7 @@ macro_rules! log {
 #[macro_export]
 macro_rules! trace {
     ($($input:tt)*) => {
-        $crate::log!((trace, purple) => $($input)*)
+        $crate::log!((trace, magenta) => $($input)*)
     };
 }
 
@@ -77,7 +77,7 @@ macro_rules! info {
 #[macro_export]
 macro_rules! warning {
     ($($input:tt)*) => {
-        $crate::log!((warning, bright_yellow) => $($input)*)
+        $crate::log!((warning, light_yellow) => $($input)*)
     };
 }
 
@@ -85,7 +85,7 @@ macro_rules! warning {
 #[macro_export]
 macro_rules! error {
     ($($input:tt)*) => {
-        $crate::log!((error, bright_red) => $($input)*)
+        $crate::log!((error, light_red) => $($input)*)
     };
 }
 
