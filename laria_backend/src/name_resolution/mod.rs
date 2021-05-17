@@ -62,7 +62,7 @@ impl<'src> ResolveState<'src> {
                 self.failed = true;
 
                 // Return fake result
-                return Path::local_name("!failed_lookup_recovery".to_owned(), path.span);
+                Path::local_name("!failed_lookup_recovery".to_owned(), path.span)
             },
         }
     }

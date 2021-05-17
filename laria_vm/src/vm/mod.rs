@@ -234,6 +234,6 @@ impl VM {
         self.script
             .globals
             .get(&name)
-            .ok_or_else(|| VMError::NoSuchGlobal(name))
+            .ok_or(VMError::NoSuchGlobal(name))
     }
 }

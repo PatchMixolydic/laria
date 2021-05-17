@@ -386,10 +386,10 @@ impl<'src> Typecheck<'src> {
     }
 }
 
-pub(super) fn typecheck<'src>(
+pub(super) fn typecheck(
     script: Script,
     ty_env: TypeEnvironment,
-    source: &'src str,
+    source: &str,
 ) -> Result<(Script, TypeEnvironment), ()> {
     let typechecker = Typecheck::new(ty_env, source);
     typechecker.check_script(script)

@@ -8,7 +8,7 @@ use super::{span::Span, DiagnosticsContext, Level};
 impl From<Level> for AnnotationType {
     fn from(level: Level) -> Self {
         match level {
-            Level::ICE | Level::Error => AnnotationType::Error,
+            Level::Ice | Level::Error => AnnotationType::Error,
             Level::Warning => AnnotationType::Warning,
             Level::Help => AnnotationType::Help,
             Level::Info => AnnotationType::Info,

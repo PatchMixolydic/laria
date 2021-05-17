@@ -116,7 +116,6 @@ impl Scopes {
     /// For instance, using `scope_for` on a path that represents
     /// `std::mem::forget` would return `None`.
     pub(super) fn scope_for(&self, path: &Path) -> Option<&Scope> {
-
         match path.location {
             PathSearchLocation::Root => todo!(),
             PathSearchLocation::Super => todo!(),
@@ -222,7 +221,6 @@ impl Scopes {
                 let this_path_last = path.unwrap_last_segment();
 
                 while !search_path.segments.is_empty() {
-
                     let maybe_this_path = search_path.append_path(path);
 
                     match self.scope_for(&maybe_this_path) {

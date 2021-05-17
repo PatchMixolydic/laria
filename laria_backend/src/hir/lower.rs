@@ -76,7 +76,7 @@ impl<'src> LowerAst<'src> {
         // (nb. will only be true when paths are added)
         self.ty_env
             .unify(ty_id_for_fn_path, fn_type)
-            .expect(&format!("Problem unifying types while lowering {}", path));
+            .unwrap_or_else(|_| panic!("Problem unifying types while lowering {}", path));
 
         hir_tree::FunctionDecl::new(
             &mut self.ty_env,
@@ -95,10 +95,9 @@ impl<'src> LowerAst<'src> {
             statements.push(self.lower_statement(statement));
         }
 
-        let return_expr = match block.return_expr {
-            Some(expr) => Some(Box::new(self.lower_expression(*expr))),
-            None => None,
-        };
+        let return_expr = block
+            .return_expr
+            .map(|expr| Box::new(self.lower_expression(*expr)));
 
         hir_tree::Block::new(
             statements,
@@ -200,21 +199,15 @@ impl<'src> LowerAst<'src> {
                     (block, ty)
                 });
 
-                let kind = hir_tree::ExpressionKind::If {
+                hir_tree::ExpressionKind::If {
                     cond,
                     then,
                     otherwise,
-                };
-
-                kind
+                }
             },
 
             ast::ExpressionKind::Loop(maybe_count, body) => {
-                let maybe_count = match maybe_count {
-                    Some(count) => Some(Box::new(self.lower_expression(*count))),
-                    None => None,
-                };
-
+                let maybe_count = maybe_count.map(|count| Box::new(self.lower_expression(*count)));
                 let body = self.lower_block(body);
                 hir_tree::ExpressionKind::Loop(maybe_count, body)
             },
@@ -283,9 +276,6 @@ impl<'src> LowerAst<'src> {
 /// and the new type environment.
 ///
 /// [`Script`]: hir_tree::Script
-pub(super) fn lower_ast<'src>(
-    ast: ast::Script,
-    source: &'src str,
-) -> (hir_tree::Script, TypeEnvironment) {
+pub(super) fn lower_ast(ast: ast::Script, source: &str) -> (hir_tree::Script, TypeEnvironment) {
     LowerAst::new(source).lower(ast)
 }

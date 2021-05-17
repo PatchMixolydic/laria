@@ -161,7 +161,7 @@ fn main() {
         });
 
         match status {
-            Ok(Value::Unit) => return,
+            Ok(Value::Unit) => {},
 
             Ok(res) => {
                 info!("returned `{}`", res);

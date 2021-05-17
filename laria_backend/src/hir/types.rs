@@ -49,7 +49,7 @@ impl Type {
 
             Type::Tuple(contents) => {
                 let contents_string = contents
-                    .into_iter()
+                    .iter()
                     .map(|id| ty_env.type_from_id(*id).to_string(ty_env))
                     .collect::<Vec<_>>()
                     .join(", ");
