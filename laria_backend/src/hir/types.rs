@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
-use crate::errors::Span;
-
 use super::hir_tree::Path;
+use crate::errors::Span;
 
 pub(super) type TypeId = usize;
 

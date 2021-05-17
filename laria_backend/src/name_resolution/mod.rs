@@ -1,20 +1,20 @@
-use std::collections::HashMap;
+mod scopes;
 
+use self::scopes::Scopes;
 use crate::{
-    errors::{DiagnosticsContext, Span},
+    errors::DiagnosticsContext,
     parser::ast::{
         Block, Expression, ExpressionKind, FunctionDecl, FunctionDef, PartialArg, Path,
-        PathSearchLocation, PathSegment, Script, Statement, StatementKind, Type, TypeKind,
+        PathSegment, Script, Statement, StatementKind, Type, TypeKind,
     },
 };
 
 struct ResolveState<'src> {
-    current_path: Path,
     /// Each scope is a segment in the current path
     /// and maps an identifier in that scope to an
     /// absolute path.
     // TODO: Vec<HashMap<..>> seems odd
-    scopes: Vec<HashMap<String, Path>>,
+    scopes: Scopes,
     blocks_in_scope: Vec<u64>,
     failed: bool,
     error_ctx: DiagnosticsContext<'src>,
@@ -23,8 +23,7 @@ struct ResolveState<'src> {
 impl<'src> ResolveState<'src> {
     fn new(source: &'src str) -> Self {
         Self {
-            current_path: Path::new(PathSearchLocation::Absolute, Vec::new(), Span::empty()),
-            scopes: Vec::new(),
+            scopes: Scopes::new(),
             blocks_in_scope: Vec::new(),
             failed: false,
             error_ctx: DiagnosticsContext::new(source, None),
@@ -32,21 +31,13 @@ impl<'src> ResolveState<'src> {
     }
 
     fn push_scope(&mut self, scope_segment: PathSegment) {
-        self.current_path.segments.push(scope_segment);
-        self.scopes.push(HashMap::new());
+        self.scopes.push_scope(scope_segment);
         self.blocks_in_scope.push(0);
     }
 
     fn pop_scope(&mut self) {
-        self.current_path.segments.pop();
-        self.scopes.pop();
+        self.scopes.pop_scope();
         self.blocks_in_scope.pop();
-    }
-
-    fn current_scope(&mut self) -> &mut HashMap<String, Path> {
-        self.scopes
-            .last_mut()
-            .expect("Name resolution should always have access to at least one scope")
     }
 
     fn current_blocks_in_scope(&mut self) -> &mut u64 {
@@ -57,65 +48,21 @@ impl<'src> ResolveState<'src> {
 
     /// Adds a local name to the current scope.
     fn add_local(&mut self, name: PathSegment) -> Path {
-        let name = match name {
-            PathSegment::Named(name, _) => name,
-            _ => unreachable!(),
-        };
-
-        let mut real_path = self.current_path.clone();
-        real_path.segments.push(PathSegment::Named(name.clone(), 0));
-        self.current_scope().insert(name.clone(), real_path.clone());
-
-        real_path
+        self.scopes.add_local(name).unwrap()
     }
 
     fn lookup(&mut self, path: &Path) -> Path {
-        match path.location {
-            PathSearchLocation::Root => todo!("root lookup"),
-            PathSearchLocation::Super => todo!("super lookup"),
-            PathSearchLocation::SelfMod => todo!("self lookup"),
+        match self.scopes.lookup(path) {
+            Some(res) => res,
 
-            PathSearchLocation::Absolute => {
-                // TODO: actually look up and validate the path
-                path.clone()
-            },
+            None => {
+                self.error_ctx
+                    .build_error_span(path.span, format!("couldn't find `{}` in this scope", path))
+                    .emit();
+                self.failed = true;
 
-            PathSearchLocation::Local => {
-                let name = match path.unwrap_last_segment() {
-                    PathSegment::Named(res, _) => res,
-                    _ => unreachable!(),
-                };
-
-                let mut scopes_iter = self.scopes.iter().rev();
-                let res = loop {
-                    match scopes_iter.next() {
-                        Some(scope) => match scope.get(name) {
-                            Some(path) => {
-                                break path.clone();
-                            },
-
-                            None => continue,
-                        },
-
-                        None => {
-                            self.error_ctx
-                                .build_error_span(
-                                    path.span,
-                                    format!("couldn't find `{}` in this scope", path),
-                                )
-                                .emit();
-                            self.failed = true;
-
-                            // Return fake result
-                            return Path::local_name(
-                                "!failed_lookup_recovery".to_owned(),
-                                path.span,
-                            );
-                        },
-                    }
-                };
-
-                res
+                // Return fake result
+                return Path::local_name("!failed_lookup_recovery".to_owned(), path.span);
             },
         }
     }

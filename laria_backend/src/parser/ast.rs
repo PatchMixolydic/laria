@@ -227,6 +227,24 @@ impl Path {
             .last()
             .expect("called `unwrap_last_segment` on a path with no segments")
     }
+
+    pub fn parent(&self) -> Path {
+        let mut res = self.clone();
+        res.segments.pop();
+        res
+    }
+
+    pub fn append_path(&self, other: &Path) -> Self {
+        let mut res = self.clone();
+        res.segments.extend_from_slice(&other.segments);
+        res
+    }
+
+    pub fn create_child(&self, segment: PathSegment) -> Self {
+        let mut res = self.clone();
+        res.segments.push(segment);
+        res
+    }
 }
 
 impl fmt::Display for Path {

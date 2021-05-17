@@ -119,7 +119,6 @@ fn main() {
             info!("compiling {}...", source_file)
         }
 
-        //let ast = compile_for_vm(source_path);
         todo!("parse, compile, validate, lower to file");
     } else {
         if args.verbose {
