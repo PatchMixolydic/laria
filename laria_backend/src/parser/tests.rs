@@ -18,6 +18,19 @@ macro_rules! parser {
     }};
 }
 
+macro_rules! assert_path_named {
+    ($path:expr, $name:expr) => {
+        match $path.unwrap_last_segment() {
+            PathSegment::Named(name, _) if name == $name => {},
+            _ => panic!(
+                "assertion failed: {} != {}",
+                stringify!($path),
+                stringify!($name)
+            ),
+        }
+    };
+}
+
 #[test]
 fn eat_keyword() {
     let mut parser = parser!("fn");
@@ -261,11 +274,7 @@ fn too_many_commas() {
 fn module() {
     let mut parser = parser!("mod foo { fn x() {} }");
     let res = parser.parse_mod().expect("Expected a successful parse");
-
-    match res.functions[0].header.name.unwrap_last_segment() {
-        PathSegment::Named(name, _) if name == "x" => {},
-        _ => unreachable!(),
-    }
+    assert_path_named!(res.functions[0].header.name, "x");
 }
 
 #[test]
