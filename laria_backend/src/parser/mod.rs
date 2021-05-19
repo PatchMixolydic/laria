@@ -140,7 +140,7 @@ impl<'src> Parser<'src> {
 
         while self.tokens.peek().is_some() {
             let next_span = self.tokens.peek().map(|t| t.span).unwrap_or_default();
-            res.span.grow_to_contain(&next_span);
+            res.span = res.span.combine(next_span);
             self.parse_mod_item(&mut res.top_level_mod, true)?;
         }
 
@@ -163,7 +163,7 @@ impl<'src> Parser<'src> {
         let close_delim_span = self
             .expect_item(Expected::CloseDelim(DelimKind::Brace))?
             .span;
-        span.grow_to_contain(&close_delim_span);
+        span = span.combine(close_delim_span);
 
         Ok(res)
     }
@@ -221,7 +221,7 @@ impl<'src> Parser<'src> {
             .expect_item(Expected::CloseDelim(DelimKind::Paren))?
             .span;
 
-        header_span.grow_to_contain(&close_paren_span);
+        header_span = header_span.combine(close_paren_span);
 
         // TODO: does this belong here?
         if args.len() > u8::MAX as usize {
@@ -256,7 +256,7 @@ impl<'src> Parser<'src> {
         let mut span = self.expect_item(Expected::Keyword(Keyword::Extern))?.span;
         let header = self.parse_fn_header()?;
         let semicolon_span = self.expect_item(Expected::Symbol(Symbol::Semicolon))?.span;
-        span.grow_to_contain(&header.span);
+        span = span.combine(header.span);
 
         Ok(ExternFn::new(header, span))
     }
@@ -265,7 +265,7 @@ impl<'src> Parser<'src> {
         let header = self.parse_fn_header()?;
         let body = self.parse_block()?;
         let mut fn_span = header.span;
-        fn_span.grow_to_contain(&body.span);
+        fn_span = fn_span.combine(body.span);
 
         Ok(FunctionDef::new(header, body, fn_span))
     }
@@ -284,7 +284,7 @@ impl<'src> Parser<'src> {
         }
 
         let close_brace = self.expect_item(Expected::CloseDelim(DelimKind::Brace))?;
-        res.span.grow_to_contain(&close_brace.span);
+        res.span = res.span.combine(close_brace.span);
 
         Ok(res)
     }
@@ -329,7 +329,7 @@ impl<'src> Parser<'src> {
 
             if self.check_next(Expected::Symbol(Symbol::Semicolon)) {
                 let semicolon = self.expect_item(Expected::Symbol(Symbol::Semicolon))?;
-                span.grow_to_contain(&semicolon.span);
+                span = span.combine(semicolon.span);
 
                 Ok(StatementOrExpr::Statement(expr.into()))
             } else if self.check_next(Expected::CloseDelim(DelimKind::Brace)) {
@@ -360,7 +360,7 @@ impl<'src> Parser<'src> {
         let maybe_expr = self.parse_expression(&[Expected::Symbol(Symbol::Semicolon)], 0)?;
 
         let semicolon_span = self.expect_item(Expected::Symbol(Symbol::Semicolon))?.span;
-        span.grow_to_contain(&semicolon_span);
+        span = span.combine(semicolon_span);
 
         match maybe_expr {
             Some(expr) => {
@@ -407,7 +407,7 @@ impl<'src> Parser<'src> {
             let close_paren_span = self
                 .expect_item(Expected::CloseDelim(DelimKind::Paren))?
                 .span;
-            span.grow_to_contain(&close_paren_span);
+            span = span.combine(close_paren_span);
 
             Ok(Type::new(TypeKind::Tuple(contents), span))
         } else {
@@ -447,7 +447,7 @@ impl<'src> Parser<'src> {
             }
 
             let ident = self.expect_item(Expected::Ident)?;
-            span.grow_to_contain(&ident.span);
+            span = span.combine(ident.span);
             segments.push(PathSegment::Named(ident.kind.unwrap_ident(), 0));
         }
 
@@ -538,7 +538,7 @@ impl<'src> Parser<'src> {
             let close_paren_span = self
                 .expect_item(Expected::CloseDelim(DelimKind::Paren))?
                 .span;
-            span.grow_to_contain(&close_paren_span);
+            span = span.combine(close_paren_span);
             expr.span = span;
 
             expr
@@ -548,7 +548,7 @@ impl<'src> Parser<'src> {
                 None => return Err(self.unexpected()),
             };
 
-            span.grow_to_contain(&expr.span);
+            span = span.combine(expr.span);
             Expression::new(ExpressionKind::Return(expr), span)
         } else if let Some(op) = self.token_as_unary_op(&next_token_kind) {
             // Throw away the operator
@@ -560,11 +560,11 @@ impl<'src> Parser<'src> {
                 None => return Err(self.unexpected()),
             };
 
-            span.grow_to_contain(&expr.span);
+            span = span.combine(expr.span);
             Expression::new(ExpressionKind::UnaryOperation(op, Box::new(expr)), span)
         } else if self.check_block_like_expr_next() {
             let expr = self.parse_block_like_expr()?;
-            span.grow_to_contain(&expr.span);
+            span = span.combine(expr.span);
 
             expr
         } else if self.check_next(Expected::Literal(ExpectLiteral::Any)) {
@@ -577,11 +577,11 @@ impl<'src> Parser<'src> {
                 _ => unreachable!(),
             };
 
-            span.grow_to_contain(&literal_span);
+            span = span.combine(literal_span);
             Expression::new(ExpressionKind::Literal(literal_kind), span)
         } else if self.check_next(Expected::Ident) {
             let path = self.parse_path()?;
-            span.grow_to_contain(&path.span);
+            span = span.combine(path.span);
             Expression::new(ExpressionKind::Path(path), span)
         } else {
             return Err(self.unexpected());
@@ -590,7 +590,7 @@ impl<'src> Parser<'src> {
         loop {
             let (next_token_kind, next_token_span) = match self.tokens.peek() {
                 Some(token) => {
-                    span.grow_to_contain(&token.span);
+                    span = span.combine(token.span);
                     (token.kind.clone(), token.span)
                 },
 
@@ -610,7 +610,7 @@ impl<'src> Parser<'src> {
                 )?;
 
                 let close_paren = self.expect_item(Expected::CloseDelim(DelimKind::Paren))?;
-                span.grow_to_contain(&close_paren.span);
+                span = span.combine(close_paren.span);
 
                 res = Expression::new(ExpressionKind::FnCall(Box::new(res), args), span);
                 continue;
@@ -633,7 +633,7 @@ impl<'src> Parser<'src> {
                 None => return Err(self.unexpected()),
             };
 
-            span.grow_to_contain(&rhs.span);
+            span = span.combine(rhs.span);
 
             res = Expression::new(
                 ExpressionKind::BinaryOperation(Box::new(res), operator, Box::new(rhs)),
@@ -690,7 +690,7 @@ impl<'src> Parser<'src> {
         };
 
         let then = self.parse_block()?;
-        if_span.grow_to_contain(&then.span);
+        if_span = if_span.combine(then.span);
 
         let otherwise = if self.eat(Expected::Keyword(Keyword::Else)) {
             if self.check_next(Expected::Keyword(Keyword::If)) {
@@ -698,7 +698,7 @@ impl<'src> Parser<'src> {
                 // into `if x {} else { if y {} }`
                 let else_if_expr = self.parse_if_expr()?;
                 let else_if_span = else_if_expr.span;
-                if_span.grow_to_contain(&else_if_span);
+                if_span = if_span.combine(else_if_span);
 
                 Some(Block {
                     contents: Vec::new(),
@@ -707,7 +707,7 @@ impl<'src> Parser<'src> {
                 })
             } else {
                 let else_block = self.parse_block()?;
-                if_span.grow_to_contain(&else_block.span);
+                if_span = if_span.combine(else_block.span);
 
                 Some(else_block)
             }
@@ -745,7 +745,7 @@ impl<'src> Parser<'src> {
         };
 
         let body = self.parse_block()?;
-        span.grow_to_contain(&body.span);
+        span = span.combine(body.span);
 
         Ok(Expression {
             kind: ExpressionKind::While(Box::new(cond), body),
@@ -761,7 +761,7 @@ impl<'src> Parser<'src> {
             .map(Box::new);
 
         let body = self.parse_block()?;
-        span.grow_to_contain(&body.span);
+        span = span.combine(body.span);
 
         Ok(Expression {
             kind: ExpressionKind::Loop(loop_count, body),

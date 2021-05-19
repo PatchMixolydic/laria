@@ -333,8 +333,7 @@ impl<'src> Typecheck<'src> {
                             Span::empty()
                         } else {
                             let mut res = args[0].span;
-                            res.grow_to_contain(&args.last().unwrap().span);
-                            res
+                            res.combine(args.last().unwrap().span)
                         };
 
                         self.try_unify(tuple_type_id, fn_args_type_id, args_span);

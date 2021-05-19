@@ -28,7 +28,8 @@ impl Span {
         self.length == 0
     }
 
-    /// Adjust this span so that it spans contains `other`.
+    /// Produces a new span that contains both `self` and `other`.
+    ///
     /// For instance, if we have two spans:
     /// ```rust,ignore
     /// fn main() { println!("Hello world"); }
@@ -36,29 +37,29 @@ impl Span {
     /// span_a      span_b
     /// ```
     ///
-    /// ...then `span_a.grow_to_contain(span_b)` would make `span_a` look like
-    /// this:
+    /// ...then `span_a.combine(span_b)` would return this:
     /// ```rust,ignore
     /// fn main() { println!("Hello world"); }
     /// ^^^^^^^^^^^^^^^^^^^^
-    /// span_a
+    /// span_a.combine(span_b)
     /// ```
     ///
-    /// `span_b.grow_to_contain(span_a)` would produce the same result.
-    pub fn grow_to_contain(&mut self, other: &Span) {
+    /// `span_b.combine(span_a)` would produce the same result.
+    #[must_use = "`combine` produces a new `Span`"]
+    pub fn combine(self, other: Span) -> Span {
         if other.is_empty() {
             // x + 0 = x,
             // so we don't need to do anything
+            self
         } else if self.is_empty() {
             // 0 + x = x,
             // so we must take on the value of other
-            *self = *other;
+            other
         } else {
             // Span from where the earliest start to the latest end
             let start = min(self.start, other.start);
             let end = max(self.start + self.length, other.start + other.length);
-            self.start = start;
-            self.length = end - start;
+            Span::new(start, end - start)
         }
     }
 }
@@ -86,7 +87,7 @@ mod tests {
         let mut span_a = Span::new(0, 1);
         let span_b = Span::new(2, 1);
         let span_ab = Span::new(0, 3);
-        span_a.grow_to_contain(&span_b);
+        span_a = span_a.combine(span_b);
 
         assert_eq!(span_a, span_ab);
     }
@@ -98,7 +99,7 @@ mod tests {
         let mut span_a = Span::new(2, 1);
         let span_b = Span::new(0, 1);
         let span_ab = Span::new(0, 3);
-        span_a.grow_to_contain(&span_b);
+        span_a = span_a.combine(span_b);
 
         assert_eq!(span_a, span_ab);
     }
@@ -110,7 +111,7 @@ mod tests {
         let mut span_a = Span::new(0, 3);
         let span_b = Span::new(0, 1);
         let span_ab = Span::new(0, 3);
-        span_a.grow_to_contain(&span_b);
+        span_a = span_a.combine(span_b);
 
         assert_eq!(span_a, span_ab);
     }
@@ -122,7 +123,7 @@ mod tests {
         let mut span_a = Span::new(1, 1);
         let span_b = Span::new(3, 3);
         let span_ab = Span::new(1, 5);
-        span_a.grow_to_contain(&span_b);
+        span_a = span_a.combine(span_b);
 
         assert_eq!(span_a, span_ab);
     }
@@ -134,7 +135,7 @@ mod tests {
         let mut span_a = Span::new(1, 3);
         let span_b = Span::new(5, 1);
         let span_ab = Span::new(1, 5);
-        span_a.grow_to_contain(&span_b);
+        span_a = span_a.combine(span_b);
 
         assert_eq!(span_a, span_ab);
     }
