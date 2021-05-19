@@ -1,0 +1,12 @@
+extern fn print(s: string);
+
+mod x {
+    fn hello() {
+        print("Hello modules!");
+    }
+}
+
+fn main() {
+    print("Hello world!");
+    x::hello();
+}

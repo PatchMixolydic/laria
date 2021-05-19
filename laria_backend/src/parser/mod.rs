@@ -136,25 +136,54 @@ impl<'src> Parser<'src> {
     /// Parses a script.
     fn parse_script(&mut self) -> Result<Script, ParseError> {
         let mut res = Script::new();
-
         res.span = self.tokens.peek().map(|t| t.span).unwrap_or_default();
 
-        loop {
-            if self.check_next(Expected::Keyword(Keyword::Fn)) {
-                res.functions.push(self.parse_fn()?);
-            } else if self.check_next(Expected::Keyword(Keyword::Extern)) {
-                res.extern_fns.push(self.parse_extern_fn()?);
-            } else {
-                match self.tokens.peek() {
-                    Some(_) => return Err(self.unexpected()),
-
-                    // Reached EOF
-                    None => break,
-                }
-            }
+        while self.tokens.peek().is_some() {
+            let next_span = self.tokens.peek().map(|t| t.span).unwrap_or_default();
+            res.span.grow_to_contain(&next_span);
+            self.parse_mod_item(&mut res.top_level_mod, true)?;
         }
 
         Ok(res)
+    }
+
+    fn parse_mod(&mut self) -> Result<Mod, ParseError> {
+        let mut span = self.expect_item(Expected::Keyword(Keyword::Mod))?.span;
+        let name_token = self.expect_item(Expected::Ident)?;
+        let name_span = name_token.span;
+        let name = Path::local_name(name_token.kind.unwrap_ident(), name_span);
+        self.expect_item(Expected::OpenDelim(DelimKind::Brace))?;
+
+        let mut res = Mod::new(name, span);
+
+        while !self.check_next(Expected::CloseDelim(DelimKind::Brace)) {
+            self.parse_mod_item(&mut res, false)?;
+        }
+
+        let close_delim_span = self
+            .expect_item(Expected::CloseDelim(DelimKind::Brace))?
+            .span;
+        span.grow_to_contain(&close_delim_span);
+
+        Ok(res)
+    }
+
+    fn parse_mod_item(&mut self, module: &mut Mod, eof_acceptable: bool) -> Result<(), ParseError> {
+        if self.check_next(Expected::Keyword(Keyword::Fn)) {
+            module.functions.push(self.parse_fn()?);
+        } else if self.check_next(Expected::Keyword(Keyword::Extern)) {
+            module.extern_fns.push(self.parse_extern_fn()?);
+        } else if self.check_next(Expected::Keyword(Keyword::Mod)) {
+            module.modules.push(self.parse_mod()?);
+        } else {
+            match self.tokens.peek() {
+                // Reached EOF
+                None if eof_acceptable => return Ok(()),
+                _ => return Err(self.unexpected()),
+            }
+        }
+
+        Ok(())
     }
 
     fn parse_fn_header(&mut self) -> Result<FunctionDecl, ParseError> {
@@ -419,7 +448,7 @@ impl<'src> Parser<'src> {
 
             let ident = self.expect_item(Expected::Ident)?;
             span.grow_to_contain(&ident.span);
-            segments.push(PathSegment::Named(ident.kind.unwrap_ident(), 1));
+            segments.push(PathSegment::Named(ident.kind.unwrap_ident(), 0));
         }
 
         Ok(Path::new(location, segments, span))

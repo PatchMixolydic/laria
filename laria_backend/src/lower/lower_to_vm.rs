@@ -9,8 +9,8 @@ use std::{collections::HashMap, convert::TryInto, ops::Range};
 use crate::{
     lexer::token::LiteralKind,
     parser::ast::{
-        BinaryOperator, Block, Expression, ExpressionKind, FunctionDef, Path, Script, Statement,
-        StatementKind, UnaryOperator,
+        BinaryOperator, Block, Expression, ExpressionKind, FunctionDef, Mod, Path, Script,
+        Statement, StatementKind, UnaryOperator,
     },
 };
 
@@ -56,11 +56,19 @@ impl Lower {
 
     /// The entry point for lowering.
     fn lower_script(mut self, script: Script) -> VMScript {
-        for func in script.functions {
+        // TODO: lower from HIR
+        self.lower_mod(script.top_level_mod);
+        self.into()
+    }
+
+    fn lower_mod(&mut self, module: Mod) {
+        for func in module.functions {
             self.lower_function(func);
         }
 
-        self.into()
+        for module in module.modules {
+            self.lower_mod(module);
+        }
     }
 
     fn lower_function(&mut self, function: FunctionDef) {

@@ -9,7 +9,8 @@ use crate::{ast, errors::Span, lexer::token::LiteralKind};
 #[derive(Clone, Debug)]
 pub(super) struct Script {
     pub(super) functions: Vec<FunctionDef>,
-    // `extern fn`s will be added to the type environment when lowering
+    // `extern fn`s will be added to the type environment when lowering,
+    // `mod`s will be flattened when lowering
     pub(super) span: Span,
 }
 

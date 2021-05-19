@@ -62,6 +62,7 @@ impl ScopeMember {
     }
 }
 
+#[derive(Debug)]
 pub(super) struct Scopes {
     contents: Scope,
     /// The current scope being built.
@@ -233,6 +234,7 @@ impl Scopes {
                         },
                     }
                 }
+
                 None
             },
         }

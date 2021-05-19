@@ -20,17 +20,26 @@ impl<'src> LowerAst<'src> {
 
     fn lower(mut self, ast_script: ast::Script) -> (hir_tree::Script, TypeEnvironment) {
         let mut functions = Vec::new();
+        self.lower_mod(ast_script.top_level_mod, &mut functions);
+        let script = hir_tree::Script::new(functions, ast_script.span);
 
-        for function in ast_script.functions {
+        (script, self.ty_env)
+    }
+
+    fn lower_mod(&mut self, ast_mod: ast::Mod, functions: &mut Vec<hir_tree::FunctionDef>) {
+        for function in ast_mod.functions {
             functions.push(self.lower_function(function));
         }
 
-        for extern_fn in ast_script.extern_fns {
+        for extern_fn in ast_mod.extern_fns {
             self.lower_fn_header(extern_fn.header);
         }
 
-        let script = hir_tree::Script::new(functions, ast_script.span);
-        (script, self.ty_env)
+        // TODO: this seems like it could stack overflow
+        // with nested `mod`s
+        for module in ast_mod.modules {
+            self.lower_mod(module, functions);
+        }
     }
 
     fn lower_function(&mut self, function: ast::FunctionDef) -> hir_tree::FunctionDef {

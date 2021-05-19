@@ -4,7 +4,7 @@ use self::scopes::Scopes;
 use crate::{
     errors::DiagnosticsContext,
     parser::ast::{
-        Block, Expression, ExpressionKind, FunctionDecl, FunctionDef, PartialArg, Path,
+        Block, Expression, ExpressionKind, FunctionDecl, FunctionDef, Mod, PartialArg, Path,
         PathSegment, Script, Statement, StatementKind, Type, TypeKind,
     },
 };
@@ -76,7 +76,21 @@ impl<'src> ResolveState<'src> {
         self.add_local(PathSegment::Named("bool".to_owned(), 0));
         self.add_local(PathSegment::Named("string".to_owned(), 0));
 
-        for extern_fn in &mut ast.extern_fns {
+        self.resolve_mod(&mut ast.top_level_mod);
+
+        if self.failed {
+            Err(())
+        } else {
+            Ok(())
+        }
+    }
+
+    fn resolve_mod(&mut self, module: &mut Mod) {
+        if !module.is_top_level() {
+            self.push_scope(module.name.unwrap_last_segment().to_owned());
+        }
+
+        for extern_fn in &mut module.extern_fns {
             extern_fn.header.name =
                 self.add_local(extern_fn.header.name.unwrap_last_segment().to_owned());
             self.resolve_fn_header(&mut extern_fn.header);
@@ -85,20 +99,23 @@ impl<'src> ResolveState<'src> {
 
         // First, add all functions into the current scope (since they may be
         // mutually dependent)...
-        for function in &mut ast.functions {
+        for function in &mut module.functions {
             function.header.name =
                 self.add_local(function.header.name.unwrap_last_segment().to_owned());
         }
 
-        // ...then resolve each one
-        for function in &mut ast.functions {
+        // ... resolve each module ...
+        for module in &mut module.modules {
+            self.resolve_mod(module);
+        }
+
+        // ...then resolve each local function's body.
+        for function in &mut module.functions {
             self.resolve_function(function);
         }
 
-        if self.failed {
-            Err(())
-        } else {
-            Ok(())
+        if !module.is_top_level() {
+            self.pop_scope();
         }
     }
 

@@ -4,16 +4,17 @@ use crate::{errors::Span, lexer::token::LiteralKind};
 
 #[derive(Clone, Debug)]
 pub struct Script {
-    pub functions: Vec<FunctionDef>,
-    pub extern_fns: Vec<ExternFn>,
+    pub top_level_mod: Mod,
     pub span: Span,
 }
 
 impl Script {
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
+        let mut top_level_mod = Mod::new(Path::local_name("root", Span::empty()), Span::empty());
+        top_level_mod.is_top_level = true;
+
         Self {
-            functions: Vec::new(),
-            extern_fns: Vec::new(),
+            top_level_mod,
             span: Span::empty(),
         }
     }
@@ -21,6 +22,53 @@ impl Script {
 
 impl fmt::Display for Script {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for extern_fn in &self.top_level_mod.extern_fns {
+            write!(f, "{};\n\n", extern_fn)?;
+        }
+
+        for function in &self.top_level_mod.functions {
+            write!(f, "{}\n\n", function)?;
+        }
+
+        for module in &self.top_level_mod.modules {
+            write!(f, "{}\n\n", module)?;
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Mod {
+    pub name: Path,
+    pub functions: Vec<FunctionDef>,
+    pub extern_fns: Vec<ExternFn>,
+    pub modules: Vec<Mod>,
+    pub span: Span,
+    is_top_level: bool,
+}
+
+impl Mod {
+    pub const fn new(name: Path, span: Span) -> Self {
+        Self {
+            name,
+            functions: Vec::new(),
+            extern_fns: Vec::new(),
+            modules: Vec::new(),
+            span,
+            is_top_level: false,
+        }
+    }
+
+    pub const fn is_top_level(&self) -> bool {
+        self.is_top_level
+    }
+}
+
+impl fmt::Display for Mod {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "mod {} {{\n", self.name)?;
+
         for extern_fn in &self.extern_fns {
             write!(f, "{};\n\n", extern_fn)?;
         }
@@ -28,6 +76,8 @@ impl fmt::Display for Script {
         for function in &self.functions {
             write!(f, "{}\n\n", function)?;
         }
+
+        write!(f, "}}\n\n")?;
 
         Ok(())
     }
@@ -214,10 +264,10 @@ impl Path {
         }
     }
 
-    pub fn local_name(name: String, span: Span) -> Self {
+    pub fn local_name(name: impl Into<String>, span: Span) -> Self {
         Self {
             location: PathSearchLocation::Local,
-            segments: vec![PathSegment::Named(name, 0)],
+            segments: vec![PathSegment::Named(name.into(), 0)],
             span,
         }
     }

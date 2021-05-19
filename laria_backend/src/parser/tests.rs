@@ -256,3 +256,20 @@ fn too_many_commas() {
         )))
     ))
 }
+
+#[test]
+fn module() {
+    let mut parser = parser!("mod foo { fn x() {} }");
+    let res = parser.parse_mod().expect("Expected a successful parse");
+
+    match res.functions[0].header.name.unwrap_last_segment() {
+        PathSegment::Named(name, _) if name == "x" => {},
+        _ => unreachable!(),
+    }
+}
+
+#[test]
+fn module_block_eof_failure() {
+    let mut parser = parser!("mod foo { fn x() {}");
+    assert!(matches!(parser.parse_mod(), Err(ParseError::UnexpectedEOF)));
+}
