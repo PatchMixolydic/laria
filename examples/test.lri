@@ -1,4 +1,7 @@
-extern fn print(s: never);
+// this example won't run with -Utypecheck
+// since `print` takes various different types
+// generics might help here?
+extern fn print(s: !);
 
 fn main() {
     print("About to call f");
@@ -77,7 +80,7 @@ fn f() {
     print("This is f!");
 }
 
-fn g(x: i32) {
+fn g(x: i64) {
     print("g, it sure is boring around here");
     print(x);
     let y = x + 4;

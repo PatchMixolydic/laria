@@ -4,23 +4,77 @@ use crate::{errors::Span, lexer::token::LiteralKind};
 
 #[derive(Clone, Debug)]
 pub struct Script {
-    pub functions: Vec<FunctionDef>,
-    pub extern_fns: Vec<ExternFn>,
+    pub top_level_mod: Mod,
     pub span: Span,
 }
 
 impl Script {
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
+        let mut top_level_mod = Mod::new(Path::local_name("root", Span::empty()), Span::empty());
+        top_level_mod.is_top_level = true;
+
         Self {
-            functions: Vec::new(),
-            extern_fns: Vec::new(),
+            top_level_mod,
             span: Span::empty(),
         }
     }
 }
 
+impl Default for Script {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl fmt::Display for Script {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for extern_fn in &self.top_level_mod.extern_fns {
+            write!(f, "{};\n\n", extern_fn)?;
+        }
+
+        for function in &self.top_level_mod.functions {
+            write!(f, "{}\n\n", function)?;
+        }
+
+        for module in &self.top_level_mod.modules {
+            write!(f, "{}\n\n", module)?;
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Mod {
+    pub name: Path,
+    pub functions: Vec<FunctionDef>,
+    pub extern_fns: Vec<ExternFn>,
+    pub modules: Vec<Mod>,
+    pub span: Span,
+    is_top_level: bool,
+}
+
+impl Mod {
+    pub const fn new(name: Path, span: Span) -> Self {
+        Self {
+            name,
+            functions: Vec::new(),
+            extern_fns: Vec::new(),
+            modules: Vec::new(),
+            span,
+            is_top_level: false,
+        }
+    }
+
+    pub const fn is_top_level(&self) -> bool {
+        self.is_top_level
+    }
+}
+
+impl fmt::Display for Mod {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "mod {} {{", self.name)?;
+
         for extern_fn in &self.extern_fns {
             write!(f, "{};\n\n", extern_fn)?;
         }
@@ -28,6 +82,8 @@ impl fmt::Display for Script {
         for function in &self.functions {
             write!(f, "{}\n\n", function)?;
         }
+
+        write!(f, "}}\n\n")?;
 
         Ok(())
     }
@@ -37,17 +93,17 @@ impl fmt::Display for Script {
 /// which contains its name and arguments.
 #[derive(Clone, Debug)]
 pub struct FunctionDecl {
-    pub name: String,
-    pub arguments: Vec<(String, String)>,
-    pub return_type: Option<String>,
+    pub name: Path,
+    pub arguments: Vec<(Path, Type)>,
+    pub return_type: Option<Type>,
     pub span: Span,
 }
 
 impl FunctionDecl {
     pub fn new(
-        name: String,
-        arguments: Vec<(String, String)>,
-        return_type: Option<String>,
+        name: Path,
+        arguments: Vec<(Path, Type)>,
+        return_type: Option<Type>,
         span: Span,
     ) -> Self {
         Self {
@@ -146,6 +202,187 @@ impl fmt::Display for Block {
     }
 }
 
+/// The search location for this path,
+/// given by its first segment.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum PathSearchLocation {
+    /// The script root, denoted by `root`.
+    Root,
+    /// The module above this, denoted by `super`.
+    Super,
+    /// The current module, denoted by `self`.
+    SelfMod,
+    /// An absolute path, starting with `::`.
+    Absolute,
+    /// The current scope, denoted by an arbitrary name.
+    Local,
+    /// An absolute path that should be lowered to only
+    /// contain its last segment as its name.
+    ///
+    /// Used for `extern fn`s.
+    NoMangle,
+}
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub enum PathSegment {
+    Named(String, u64),
+    Block(u64),
+}
+
+impl PathSegment {
+    pub const fn is_anonymous(&self) -> bool {
+        match self {
+            PathSegment::Block(_) => true,
+            PathSegment::Named(..) => false,
+        }
+    }
+
+    pub const fn disambiguator(&self) -> u64 {
+        match self {
+            PathSegment::Named(_, res) | PathSegment::Block(res) => *res,
+        }
+    }
+}
+
+impl fmt::Display for PathSegment {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            PathSegment::Named(name, _) => write!(f, "{}", name)?,
+            PathSegment::Block(_) => write!(f, "{{block}}")?,
+        }
+
+        if self.disambiguator() > 0 {
+            write!(f, "<{}>", self.disambiguator())?;
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Path {
+    pub location: PathSearchLocation,
+    pub segments: Vec<PathSegment>,
+    pub span: Span,
+}
+
+impl Path {
+    pub const fn new(location: PathSearchLocation, segments: Vec<PathSegment>, span: Span) -> Self {
+        Self {
+            location,
+            segments,
+            span,
+        }
+    }
+
+    /// Returns the path as a [`String`] suitable for lowering
+    /// to bytecode.
+    pub fn to_bytecode_repr(&self) -> String {
+        match self.location {
+            PathSearchLocation::NoMangle => self.unwrap_last_segment().to_string(),
+            _ => self.to_string(),
+        }
+    }
+
+    pub fn local_name(name: impl Into<String>, span: Span) -> Self {
+        Self {
+            location: PathSearchLocation::Local,
+            segments: vec![PathSegment::Named(name.into(), 0)],
+            span,
+        }
+    }
+
+    pub fn unwrap_last_segment(&self) -> &PathSegment {
+        self.segments
+            .last()
+            .expect("called `unwrap_last_segment` on a path with no segments")
+    }
+
+    pub fn parent(&self) -> Path {
+        let mut res = self.clone();
+        res.segments.pop();
+        res
+    }
+
+    pub fn append_path(&self, other: &Path) -> Self {
+        let mut res = self.clone();
+        res.segments.extend_from_slice(&other.segments);
+        res
+    }
+
+    pub fn create_child(&self, segment: PathSegment) -> Self {
+        let mut res = self.clone();
+        res.segments.push(segment);
+        res
+    }
+}
+
+impl fmt::Display for Path {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.location {
+            PathSearchLocation::Root => write!(f, "root::")?,
+            PathSearchLocation::Super => write!(f, "super::")?,
+            PathSearchLocation::SelfMod => write!(f, "self::")?,
+            PathSearchLocation::Absolute => write!(f, "::")?,
+            PathSearchLocation::Local => (),
+
+            PathSearchLocation::NoMangle => {
+                // NoMangle is a special case.
+                // Write out the last segment and exit.
+                return write!(f, "{}", self.unwrap_last_segment());
+            },
+        }
+
+        for (i, segment) in self.segments.iter().enumerate() {
+            write!(f, "{}", segment)?;
+
+            if self.segments.len() - 1 != i {
+                write!(f, "::")?;
+            }
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum TypeKind {
+    Tuple(Vec<Type>),
+    Never,
+    Path(Path),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Type {
+    pub kind: TypeKind,
+    pub span: Span,
+}
+
+impl Type {
+    pub const fn new(kind: TypeKind, span: Span) -> Self {
+        Self { kind, span }
+    }
+}
+
+impl fmt::Display for Type {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.kind {
+            TypeKind::Tuple(contents) => {
+                write!(f, "(")?;
+
+                for item in contents {
+                    write!(f, "{}, ", item)?;
+                }
+
+                write!(f, ")")
+            },
+
+            TypeKind::Never => write!(f, "!"),
+            TypeKind::Path(path) => write!(f, "{}", path),
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum StatementKind {
     /// An expression followed by a semicolon,
@@ -156,7 +393,7 @@ pub enum StatementKind {
     // TODO: pattern matching?
     /// A variable declaration,
     /// `let lhs.0: lhs.1 = rhs;`.
-    Declaration((String, Option<String>), Expression),
+    Declaration((Path, Option<Type>), Expression),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -321,8 +558,8 @@ pub enum ExpressionKind {
     /// A literal, such as `4` or `"Hello"`.
     Literal(LiteralKind),
 
-    /// An identifier, ex. `foo`.
-    Identifier(String),
+    /// A path, ex. `foo`, `baz::bar`, `std::mem::transmute`.
+    Path(Path),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -407,7 +644,7 @@ impl fmt::Display for Expression {
             },
 
             ExpressionKind::Literal(literal) => write!(f, "{}", literal),
-            ExpressionKind::Identifier(ident) => write!(f, "{}", ident),
+            ExpressionKind::Path(path) => write!(f, "{}", path),
         }
     }
 }

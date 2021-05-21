@@ -19,6 +19,10 @@ pub enum Keyword {
     Enum,
     Yield,
     Match,
+    SelfKw,
+    Super,
+    // TODO: is this a good name?
+    Root,
 }
 
 impl Keyword {
@@ -43,6 +47,9 @@ impl Keyword {
             "enum" => Some(Self::Enum),
             "yield" => Some(Self::Yield),
             "match" => Some(Self::Match),
+            "self" => Some(Self::SelfKw),
+            "super" => Some(Self::Super),
+            "root" => Some(Self::Root),
             _ => None,
         }
     }
@@ -68,6 +75,9 @@ impl Keyword {
             Keyword::Enum => "enum",
             Keyword::Yield => "yield",
             Keyword::Match => "match",
+            Keyword::SelfKw => "self",
+            Keyword::Super => "super",
+            Keyword::Root => "root",
         }
     }
 }

@@ -6,7 +6,7 @@ pub(crate) use self::span::Span;
 
 #[derive(Clone, Copy)]
 enum Level {
-    ICE,
+    Ice,
     Error,
     Warning,
     Help,
@@ -26,7 +26,7 @@ impl<'src> DiagnosticsContext<'src> {
     }
 
     pub fn build_ice(&self, message: impl ToString) -> DiagnosticBuilder {
-        DiagnosticBuilder::new(message.to_string(), Level::ICE, self)
+        DiagnosticBuilder::new(message.to_string(), Level::Ice, self)
             .note("this is an internal error")
             .note("a bug report would be highly appreciated:\nhttps://github.com/PatchMixolydic/triplicata/issues/new")
     }

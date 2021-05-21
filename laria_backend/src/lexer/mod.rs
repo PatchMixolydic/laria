@@ -96,6 +96,9 @@ impl<'src> Lexer<'src> {
     /// Ok(None) if the source stream was exhausted,
     /// or Err(...) if an error occurred.
     fn lex_one_token(&mut self) -> Result<Option<Token>, LexError> {
+        // First off, get rid of all whitespace
+        self.consume_whitespace();
+
         // For convenience/reducing parens
         let (idx, c) = match self.chars.peek() {
             // Tuple is deconstructed here to copy the fields
@@ -199,7 +202,8 @@ impl<'src> Lexer<'src> {
                 TokenKind::Symbol(Symbol::Pound),
             ),
 
-            ' ' | '\t' | '\n' | '\r' => self.one_char_token(idx, TokenKind::Whitespace),
+            // Should've been eaten by the call to `consume_whitespace`
+            ' ' | '\t' | '\n' | '\r' => unreachable!(),
 
             _ => {
                 self.error_ctx
@@ -207,6 +211,19 @@ impl<'src> Lexer<'src> {
                     .emit();
                 Err(LexError::UnexpectedChar(c, idx))
             },
+        }
+    }
+
+    /// Take every character that could be considered whitespace
+    fn consume_whitespace(&mut self) {
+        loop {
+            match self.chars.peek() {
+                Some((_, c)) if c.is_whitespace() => {
+                    self.chars.next();
+                },
+
+                Some(_) | None => break,
+            }
         }
     }
 
@@ -244,17 +261,20 @@ impl<'src> Lexer<'src> {
     fn consume_number(&mut self) -> Result<Token, LexError> {
         let start = self.chars.peek().unwrap().0;
         let mut num_str = String::new();
+        let mut float_detected = false;
 
-        while let Some((_, '0'..='9')) = self.chars.peek() {
+        loop {
+            match self.chars.peek() {
+                Some((_, '.' | 'e' | 'E')) => float_detected = true,
+                Some((_, c)) if c.is_numeric() => {},
+                Some((_, '_')) => continue,
+                Some(_) | None => break,
+            }
+
             num_str.push(self.chars.next().unwrap().1);
         }
 
-        let res = if let Some((_, '.' | 'e')) = self.chars.peek() {
-            // This is really a float! Keep going!
-            while let Some((_, '0'..='9' | 'e' | '.')) = self.chars.peek() {
-                num_str.push(self.chars.next().unwrap().1);
-            }
-
+        if float_detected {
             match num_str.parse::<f64>() {
                 Ok(res) => {
                     let token = Token::new(
@@ -264,10 +284,19 @@ impl<'src> Lexer<'src> {
                     Ok(token)
                 },
 
-                Err(err) => Err(LexError::CouldntParseFloat(num_str, err)),
+                Err(err) => {
+                    self.error_ctx
+                        .build_error_span(
+                            Span::new(start, num_str.len()),
+                            format!("could not parse {} as a float", num_str),
+                        )
+                        .note(format!("str::parse says: {}", err))
+                        .emit();
+
+                    Err(LexError::CouldntParseFloat(num_str, err))
+                },
             }
         } else {
-            // Oh! We're done
             match num_str.parse::<i64>() {
                 Ok(res) => {
                     let token = Token::new(
@@ -277,39 +306,18 @@ impl<'src> Lexer<'src> {
                     Ok(token)
                 },
 
-                Err(err) => Err(LexError::CouldntParseInt(num_str, err)),
+                Err(err) => {
+                    self.error_ctx
+                        .build_error_span(
+                            Span::new(start, num_str.len()),
+                            format!("could not parse {} as an integer", num_str),
+                        )
+                        .note(format!("str::parse says: {}", err))
+                        .emit();
+
+                    Err(LexError::CouldntParseInt(num_str, err))
+                },
             }
-        };
-
-        match res {
-            Ok(res) => Ok(res),
-
-            Err(LexError::CouldntParseFloat(num_str, source)) => {
-                self.error_ctx
-                    .build_error_span(
-                        Span::new(start, num_str.len()),
-                        format!("could not parse {} as a float", num_str),
-                    )
-                    .note(format!("str::parse says: {}", source))
-                    .emit();
-
-                Err(LexError::CouldntParseFloat(num_str, source))
-            },
-
-            // TODO: can this be deduplicated without losing ownership of num_str??
-            Err(LexError::CouldntParseInt(num_str, source)) => {
-                self.error_ctx
-                    .build_error_span(
-                        Span::new(start, num_str.len()),
-                        format!("could not parse {} as an integer", num_str),
-                    )
-                    .note(format!("str::parse says: {}", source))
-                    .emit();
-
-                Err(LexError::CouldntParseInt(num_str, source))
-            },
-
-            Err(_) => unreachable!(),
         }
     }
 
@@ -323,53 +331,57 @@ impl<'src> Lexer<'src> {
         let mut last_idx = span_start;
 
         loop {
-            if let Some((idx, c)) = self.chars.next() {
-                last_idx = idx;
+            match self.chars.next() {
+                Some((idx, c)) => {
+                    last_idx = idx;
 
-                match c {
-                    '"' if !escape => {
-                        break;
-                    },
+                    match c {
+                        _ if escape => {
+                            match c {
+                                'n' => res_vec.push('\n'),
+                                'r' => res_vec.push('\r'),
+                                't' => res_vec.push('\t'),
+                                '"' => res_vec.push('"'),
+                                '\\' => res_vec.push('\\'),
+                                _ if c.is_whitespace() => self.consume_whitespace(),
 
-                    '\\' if !escape => {
-                        escape = true;
-                    },
+                                _ => {
+                                    self.error_ctx
+                                        .build_error_span(
+                                            Span::new(idx - 1, 2),
+                                            format!("invalid escape `\\{}`", c),
+                                        )
+                                        .emit();
 
-                    _ if escape => {
-                        match c {
-                            'n' => res_vec.push('\n'),
-                            'r' => res_vec.push('\r'),
-                            't' => res_vec.push('\t'),
-                            '"' => res_vec.push('"'),
-                            '\\' => res_vec.push('\\'),
-                            '\n' | '\r' => {},
+                                    return Err(LexError::CouldntParseString(span_start));
+                                },
+                            };
 
-                            _ => {
-                                self.error_ctx
-                                    .build_error_span(
-                                        Span::new(idx - 1, 2),
-                                        format!("invalid escape `\\{}`", c),
-                                    )
-                                    .emit();
+                            escape = false;
+                        },
 
-                                return Err(LexError::CouldntParseString(span_start));
-                            },
-                        };
+                        '"' => {
+                            break;
+                        },
 
-                        escape = false;
-                    },
+                        '\\' => {
+                            escape = true;
+                        },
 
-                    _ => res_vec.push(c),
-                }
-            } else {
-                self.error_ctx
-                    .build_error_span(
-                        Span::new(span_start, last_idx - span_start + 1),
-                        "unexpected end of file while lexing string literal",
-                    )
-                    .emit();
+                        _ => res_vec.push(c),
+                    }
+                },
 
-                return Err(LexError::UnexpectedEOF(last_idx));
+                None => {
+                    self.error_ctx
+                        .build_error_span(
+                            Span::new(span_start, last_idx - span_start + 1),
+                            "unexpected end of file while lexing string literal",
+                        )
+                        .emit();
+
+                    return Err(LexError::UnexpectedEOF(last_idx));
+                },
             }
         }
 

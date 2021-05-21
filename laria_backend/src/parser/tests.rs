@@ -1,5 +1,5 @@
 use super::{
-    ast::{BinaryOperator, ExpressionKind},
+    ast::{BinaryOperator, ExpressionKind, Path, PathSearchLocation, PathSegment},
     keyword::Keyword,
     Expected, ParseError, Parser,
 };
@@ -16,6 +16,19 @@ macro_rules! parser {
         let tokens = lex(source).expect("Expected a successful lex");
         Parser::new(tokens, source)
     }};
+}
+
+macro_rules! assert_path_named {
+    ($path:expr, $name:expr) => {
+        match $path.unwrap_last_segment() {
+            PathSegment::Named(name, _) if name == $name => {},
+            _ => panic!(
+                "assertion failed: {} != {}",
+                stringify!($path),
+                stringify!($name)
+            ),
+        }
+    };
 }
 
 #[test]
@@ -149,7 +162,12 @@ fn fn_call() {
 
     match res.kind {
         ExpressionKind::FnCall(name, args) => {
-            assert_eq!(name.kind, ExpressionKind::Identifier("f".to_string()));
+            let path = Path::new(
+                PathSearchLocation::Local,
+                vec![PathSegment::Named("f".to_owned(), 0)],
+                name.span,
+            );
+            assert_eq!(name.kind, ExpressionKind::Path(path));
             assert_eq!(args.len(), 0);
         },
 
@@ -250,4 +268,17 @@ fn too_many_commas() {
             Symbol::Comma
         )))
     ))
+}
+
+#[test]
+fn module() {
+    let mut parser = parser!("mod foo { fn x() {} }");
+    let res = parser.parse_mod().expect("Expected a successful parse");
+    assert_path_named!(res.functions[0].header.name, "x");
+}
+
+#[test]
+fn module_block_eof_failure() {
+    let mut parser = parser!("mod foo { fn x() {}");
+    assert!(matches!(parser.parse_mod(), Err(ParseError::UnexpectedEOF)));
 }

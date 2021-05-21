@@ -213,10 +213,10 @@ impl VM {
         self.script.globals.insert(name.into(), value);
     }
 
-    pub fn get_global(&self, name: &str) -> Result<&Value, VMError> {
+    pub fn get_global(&self, name: impl AsRef<str> + Into<String>) -> Result<&Value, VMError> {
         self.script
             .globals
-            .get(name)
+            .get(name.as_ref())
             .ok_or_else(|| VMError::NoSuchGlobal(name.into()))
     }
 }

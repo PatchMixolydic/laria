@@ -10,6 +10,7 @@ pub mod features;
 mod hir;
 mod lexer;
 mod lower;
+mod name_resolution;
 mod parser;
 
 use laria_log::*;
@@ -33,6 +34,8 @@ pub enum LariaError {
     LexError(#[source] LexError),
     #[error("{0}")]
     ParseError(#[source] ParseError),
+    #[error("encountered an error during name resolution")]
+    NameResolutionError,
     #[error("encountered an error during validation")]
     ValidationError,
 }
@@ -71,7 +74,12 @@ pub fn compile_for_vm(
     };
 
     let tokens = lexer::lex(&source)?;
-    let ast = parser::parse(tokens, &source)?;
+    let mut ast = parser::parse(tokens, &source)?;
+
+    match name_resolution::resolve(&mut ast, &source) {
+        Ok(_) => {},
+        Err(_) => return Err(LariaError::NameResolutionError),
+    }
 
     if features.typecheck {
         // TODO: consume the AST once `lower_to_vm`

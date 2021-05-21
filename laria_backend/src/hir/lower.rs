@@ -2,33 +2,44 @@ use super::{
     hir_tree,
     types::{Type, TypeEnvironment, TypeId},
 };
-use crate::ast;
+use crate::{ast, errors::DiagnosticsContext};
 
 /// Helper struct to hold state while lowering the AST.
-struct LowerAst {
+struct LowerAst<'src> {
     ty_env: TypeEnvironment,
+    error_ctx: DiagnosticsContext<'src>,
 }
 
-impl LowerAst {
-    fn new(source: &str) -> Self {
+impl<'src> LowerAst<'src> {
+    fn new(source: &'src str) -> Self {
         Self {
             ty_env: TypeEnvironment::new(),
+            error_ctx: DiagnosticsContext::new(source, None),
         }
     }
 
     fn lower(mut self, ast_script: ast::Script) -> (hir_tree::Script, TypeEnvironment) {
         let mut functions = Vec::new();
+        self.lower_mod(ast_script.top_level_mod, &mut functions);
+        let script = hir_tree::Script::new(functions, ast_script.span);
 
-        for function in ast_script.functions {
+        (script, self.ty_env)
+    }
+
+    fn lower_mod(&mut self, ast_mod: ast::Mod, functions: &mut Vec<hir_tree::FunctionDef>) {
+        for function in ast_mod.functions {
             functions.push(self.lower_function(function));
         }
 
-        for extern_fn in ast_script.extern_fns {
+        for extern_fn in ast_mod.extern_fns {
             self.lower_fn_header(extern_fn.header);
         }
 
-        let script = hir_tree::Script::new(functions, ast_script.span);
-        (script, self.ty_env)
+        // TODO: this seems like it could stack overflow
+        // with nested `mod`s
+        for module in ast_mod.modules {
+            self.lower_mod(module, functions);
+        }
     }
 
     fn lower_function(&mut self, function: ast::FunctionDef) -> hir_tree::FunctionDef {
@@ -37,19 +48,13 @@ impl LowerAst {
         hir_tree::FunctionDef::new(header, body, function.span)
     }
 
-    // TODO: use path lookup to do this correctly
-    /// Temporary hack to add a type to the environment by name.
-    fn add_type_by_name(&mut self, name: String) -> TypeId {
-        match name.as_str() {
-            "i32" | "i64" => self.ty_env.add_type(Type::Integer),
-            "bool" => self.ty_env.add_type(Type::Boolean),
-            "f32" | "f64" => self.ty_env.add_type(Type::Float),
-            "string" => self.ty_env.add_type(Type::String),
-            // TODO: should be `!`
-            "never" => self.ty_env.add_type(Type::Never),
-            "()" => self.ty_env.add_type(Type::unit()),
-            _ => todo!("unknown type `{}`", name),
-        }
+    fn emit_unresolved_path_err(&self, path: &ast::Path) -> ! {
+        self.error_ctx
+            .build_ice("encountered unresolved path while lowering AST")
+            .span_label(path.span, format!("unresolved path `{}`", path))
+            .emit();
+
+        todo!("hir lowering failed");
     }
 
     fn lower_fn_header(&mut self, header: ast::FunctionDecl) -> hir_tree::FunctionDecl {
@@ -57,30 +62,34 @@ impl LowerAst {
         let mut arg_types = Vec::new();
 
         for (arg_name, arg_type) in header.arguments {
-            arg_names.push(arg_name);
-            arg_types.push(self.add_type_by_name(arg_type));
+            arg_names.push(self.lower_path(arg_name));
+            let (_, type_id) = self.lower_type(arg_type);
+            arg_types.push(type_id);
         }
 
         let args_list_type = self.ty_env.add_type(Type::Tuple(arg_types));
-        // TODO: fix when paths are added
-        let return_type = self.add_type_by_name(header.return_type.unwrap_or("()".to_owned()));
+
+        let return_type = match header.return_type {
+            Some(ty) => self.lower_type(ty).1,
+            None => self.ty_env.add_type(Type::unit()),
+        };
+
         let fn_type = self
             .ty_env
             .add_type(Type::Function(args_list_type, return_type));
 
-        let type_id_for_fn_name = self.ty_env.type_id_for_ident(&header.name);
+        let path = self.lower_path(header.name);
+
+        let ty_id_for_fn_path = self.ty_env.type_id_for_path(&path);
         // Should be infallible since a variable should've just been created
         // (nb. will only be true when paths are added)
         self.ty_env
-            .unify(type_id_for_fn_name, fn_type)
-            .expect(&format!(
-                "Problem unifying types while lowering {}",
-                header.name
-            ));
+            .unify(ty_id_for_fn_path, fn_type)
+            .unwrap_or_else(|_| panic!("Problem unifying types while lowering {}", path));
 
         hir_tree::FunctionDecl::new(
             &mut self.ty_env,
-            header.name,
+            path,
             arg_names,
             args_list_type,
             return_type,
@@ -95,10 +104,9 @@ impl LowerAst {
             statements.push(self.lower_statement(statement));
         }
 
-        let return_expr = match block.return_expr {
-            Some(expr) => Some(Box::new(self.lower_expression(*expr))),
-            None => None,
-        };
+        let return_expr = block
+            .return_expr
+            .map(|expr| Box::new(self.lower_expression(*expr)));
 
         hir_tree::Block::new(
             statements,
@@ -108,6 +116,57 @@ impl LowerAst {
         )
     }
 
+    fn lower_type(&mut self, ty: ast::Type) -> (hir_tree::TypeName, TypeId) {
+        let (kind, type_id) = match ty.kind {
+            ast::TypeKind::Tuple(ast_contents) => {
+                let mut hir_contents = Vec::new();
+                let mut type_ids = Vec::new();
+
+                for item in ast_contents {
+                    let (hir_item, type_id) = self.lower_type(item);
+                    hir_contents.push(hir_item);
+                    type_ids.push(type_id);
+                }
+
+                let tuple_id = self.ty_env.add_type(Type::Tuple(type_ids));
+
+                (hir_tree::TypeNameKind::Tuple(hir_contents), tuple_id)
+            },
+
+            ast::TypeKind::Never => (
+                hir_tree::TypeNameKind::Never,
+                self.ty_env.add_type(Type::Never),
+            ),
+
+            ast::TypeKind::Path(ast_path) => {
+                let hir_path = self.lower_path(ast_path);
+                // TODO: is this ok?
+                let type_id = self.ty_env.type_id_for_path(&hir_path);
+                (hir_tree::TypeNameKind::Path(hir_path), type_id)
+            },
+        };
+
+        (hir_tree::TypeName::new(kind, ty.span), type_id)
+    }
+
+    fn lower_path(&mut self, path: ast::Path) -> hir_tree::Path {
+        // TODO: name resolution
+        match path.location {
+            ast::PathSearchLocation::Absolute | ast::PathSearchLocation::NoMangle => (),
+            _ => self.emit_unresolved_path_err(&path),
+        }
+
+        let segments = path
+            .segments
+            .into_iter()
+            .map(|segment| segment.to_string())
+            .collect();
+
+        let no_mangle = path.location == ast::PathSearchLocation::NoMangle;
+
+        hir_tree::Path::new(segments, path.span, no_mangle)
+    }
+
     fn lower_statement(&mut self, statement: ast::Statement) -> hir_tree::Statement {
         match statement.kind {
             ast::StatementKind::Expression(expr) => {
@@ -115,15 +174,16 @@ impl LowerAst {
                 hir_tree::Statement::new(kind, statement.span)
             },
 
-            ast::StatementKind::Declaration((name, maybe_type), expr) => {
+            ast::StatementKind::Declaration((ast_path, maybe_type), expr) => {
                 let rhs = self.lower_expression(expr);
 
                 let ty = match maybe_type {
-                    Some(given_type_name) => self.add_type_by_name(given_type_name),
+                    Some(given_type) => self.lower_type(given_type).1,
                     None => self.ty_env.add_new_type_variable(),
                 };
 
-                let kind = hir_tree::StatementKind::Declaration((name, ty), rhs);
+                let hir_path = self.lower_path(ast_path);
+                let kind = hir_tree::StatementKind::Declaration((hir_path, ty), rhs);
                 hir_tree::Statement::new(kind, statement.span)
             },
         }
@@ -150,21 +210,15 @@ impl LowerAst {
                     (block, ty)
                 });
 
-                let kind = hir_tree::ExpressionKind::If {
+                hir_tree::ExpressionKind::If {
                     cond,
                     then,
                     otherwise,
-                };
-
-                kind
+                }
             },
 
             ast::ExpressionKind::Loop(maybe_count, body) => {
-                let maybe_count = match maybe_count {
-                    Some(count) => Some(Box::new(self.lower_expression(*count))),
-                    None => None,
-                };
-
+                let maybe_count = maybe_count.map(|count| Box::new(self.lower_expression(*count)));
                 let body = self.lower_block(body);
                 hir_tree::ExpressionKind::Loop(maybe_count, body)
             },
@@ -218,7 +272,9 @@ impl LowerAst {
             },
 
             ast::ExpressionKind::Literal(literal) => hir_tree::ExpressionKind::Literal(literal),
-            ast::ExpressionKind::Identifier(ident) => hir_tree::ExpressionKind::Identifier(ident),
+            ast::ExpressionKind::Path(path) => {
+                hir_tree::ExpressionKind::Path(self.lower_path(path))
+            },
         };
 
         let expr_type = self.ty_env.add_new_type_variable();
@@ -231,9 +287,6 @@ impl LowerAst {
 /// and the new type environment.
 ///
 /// [`Script`]: hir_tree::Script
-pub(super) fn lower_ast<'src>(
-    ast: ast::Script,
-    source: &'src str,
-) -> (hir_tree::Script, TypeEnvironment) {
+pub(super) fn lower_ast(ast: ast::Script, source: &str) -> (hir_tree::Script, TypeEnvironment) {
     LowerAst::new(source).lower(ast)
 }

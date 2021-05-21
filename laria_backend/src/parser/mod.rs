@@ -136,25 +136,54 @@ impl<'src> Parser<'src> {
     /// Parses a script.
     fn parse_script(&mut self) -> Result<Script, ParseError> {
         let mut res = Script::new();
-
         res.span = self.tokens.peek().map(|t| t.span).unwrap_or_default();
 
-        loop {
-            if self.check_next(Expected::Keyword(Keyword::Fn)) {
-                res.functions.push(self.parse_fn()?);
-            } else if self.check_next(Expected::Keyword(Keyword::Extern)) {
-                res.extern_fns.push(self.parse_extern_fn()?);
-            } else {
-                match self.tokens.peek() {
-                    Some(_) => return Err(self.unexpected()),
-
-                    // Reached EOF
-                    None => break,
-                }
-            }
+        while self.tokens.peek().is_some() {
+            let next_span = self.tokens.peek().map(|t| t.span).unwrap_or_default();
+            res.span = res.span.combine(next_span);
+            self.parse_mod_item(&mut res.top_level_mod, true)?;
         }
 
         Ok(res)
+    }
+
+    fn parse_mod(&mut self) -> Result<Mod, ParseError> {
+        let mut span = self.expect_item(Expected::Keyword(Keyword::Mod))?.span;
+        let name_token = self.expect_item(Expected::Ident)?;
+        let name_span = name_token.span;
+        let name = Path::local_name(name_token.kind.unwrap_ident(), name_span);
+        self.expect_item(Expected::OpenDelim(DelimKind::Brace))?;
+
+        let mut res = Mod::new(name, span);
+
+        while !self.check_next(Expected::CloseDelim(DelimKind::Brace)) {
+            self.parse_mod_item(&mut res, false)?;
+        }
+
+        let close_delim_span = self
+            .expect_item(Expected::CloseDelim(DelimKind::Brace))?
+            .span;
+        span = span.combine(close_delim_span);
+
+        Ok(res)
+    }
+
+    fn parse_mod_item(&mut self, module: &mut Mod, eof_acceptable: bool) -> Result<(), ParseError> {
+        if self.check_next(Expected::Keyword(Keyword::Fn)) {
+            module.functions.push(self.parse_fn()?);
+        } else if self.check_next(Expected::Keyword(Keyword::Extern)) {
+            module.extern_fns.push(self.parse_extern_fn()?);
+        } else if self.check_next(Expected::Keyword(Keyword::Mod)) {
+            module.modules.push(self.parse_mod()?);
+        } else {
+            match self.tokens.peek() {
+                // Reached EOF
+                None if eof_acceptable => return Ok(()),
+                _ => return Err(self.unexpected()),
+            }
+        }
+
+        Ok(())
     }
 
     fn parse_fn_header(&mut self) -> Result<FunctionDecl, ParseError> {
@@ -167,11 +196,16 @@ impl<'src> Parser<'src> {
         let mut args = Vec::new();
 
         while !self.check_next(Expected::CloseDelim(DelimKind::Paren)) {
-            let arg_name = self.expect_item(Expected::Ident)?.kind.unwrap_ident();
-            self.expect_item(Expected::Symbol(Symbol::Colon))?;
-            let arg_type = self.expect_item(Expected::Ident)?.kind.unwrap_ident();
+            let (arg_name, span) = {
+                let token = self.expect_item(Expected::Ident)?;
+                let span = token.span;
+                (token.kind.unwrap_ident(), span)
+            };
 
-            args.push((arg_name, arg_type));
+            self.expect_item(Expected::Symbol(Symbol::Colon))?;
+            let arg_type = self.parse_type()?;
+
+            args.push((Path::local_name(arg_name, span), arg_type));
 
             if !self.check_next(Expected::Symbol(Symbol::Comma))
                 && !self.check_next(Expected::CloseDelim(DelimKind::Paren))
@@ -187,7 +221,7 @@ impl<'src> Parser<'src> {
             .expect_item(Expected::CloseDelim(DelimKind::Paren))?
             .span;
 
-        header_span.grow_to_contain(&close_paren_span);
+        header_span = header_span.combine(close_paren_span);
 
         // TODO: does this belong here?
         if args.len() > u8::MAX as usize {
@@ -209,20 +243,20 @@ impl<'src> Parser<'src> {
 
         let return_type = if self.eat(Expected::Symbol(Symbol::Arrow)) {
             // We have a return type
-            // TODO: this should be a path
-            Some(self.expect_item(Expected::Ident)?.kind.unwrap_ident())
+            Some(self.parse_type()?)
         } else {
             None
         };
 
-        Ok(FunctionDecl::new(fn_name, args, return_type, header_span))
+        let path = Path::local_name(fn_name, name_span);
+        Ok(FunctionDecl::new(path, args, return_type, header_span))
     }
 
     fn parse_extern_fn(&mut self) -> Result<ExternFn, ParseError> {
         let mut span = self.expect_item(Expected::Keyword(Keyword::Extern))?.span;
         let header = self.parse_fn_header()?;
         let semicolon_span = self.expect_item(Expected::Symbol(Symbol::Semicolon))?.span;
-        span.grow_to_contain(&header.span);
+        span = span.combine(header.span);
 
         Ok(ExternFn::new(header, span))
     }
@@ -231,7 +265,7 @@ impl<'src> Parser<'src> {
         let header = self.parse_fn_header()?;
         let body = self.parse_block()?;
         let mut fn_span = header.span;
-        fn_span.grow_to_contain(&body.span);
+        fn_span = fn_span.combine(body.span);
 
         Ok(FunctionDef::new(header, body, fn_span))
     }
@@ -250,7 +284,7 @@ impl<'src> Parser<'src> {
         }
 
         let close_brace = self.expect_item(Expected::CloseDelim(DelimKind::Brace))?;
-        res.span.grow_to_contain(&close_brace.span);
+        res.span = res.span.combine(close_brace.span);
 
         Ok(res)
     }
@@ -295,7 +329,7 @@ impl<'src> Parser<'src> {
 
             if self.check_next(Expected::Symbol(Symbol::Semicolon)) {
                 let semicolon = self.expect_item(Expected::Symbol(Symbol::Semicolon))?;
-                span.grow_to_contain(&semicolon.span);
+                span = span.combine(semicolon.span);
 
                 Ok(StatementOrExpr::Statement(expr.into()))
             } else if self.check_next(Expected::CloseDelim(DelimKind::Brace)) {
@@ -310,11 +344,14 @@ impl<'src> Parser<'src> {
     /// Consumes the semicolon.
     fn parse_variable_declaration(&mut self) -> Result<Statement, ParseError> {
         let mut span = self.expect_item(Expected::Keyword(Keyword::Let))?.span;
-        let name = self.expect_item(Expected::Ident)?.kind.unwrap_ident();
+        let (name, name_span) = {
+            let token = self.expect_item(Expected::Ident)?;
+            let span = token.span;
+            (token.kind.unwrap_ident(), span)
+        };
 
         let ty = if self.eat(Expected::Symbol(Symbol::Colon)) {
-            // TODO: path
-            Some(self.expect_item(Expected::Ident)?.kind.unwrap_ident())
+            Some(self.parse_type()?)
         } else {
             None
         };
@@ -323,13 +360,17 @@ impl<'src> Parser<'src> {
         let maybe_expr = self.parse_expression(&[Expected::Symbol(Symbol::Semicolon)], 0)?;
 
         let semicolon_span = self.expect_item(Expected::Symbol(Symbol::Semicolon))?.span;
-        span.grow_to_contain(&semicolon_span);
+        span = span.combine(semicolon_span);
 
         match maybe_expr {
-            Some(expr) => Ok(Statement::new(
-                StatementKind::Declaration((name, ty), expr),
-                span,
-            )),
+            Some(expr) => {
+                let path = Path::local_name(name, name_span);
+
+                Ok(Statement::new(
+                    StatementKind::Declaration((path, ty), expr),
+                    span,
+                ))
+            },
 
             None => {
                 self.error_ctx
@@ -342,6 +383,75 @@ impl<'src> Parser<'src> {
                 )))
             },
         }
+    }
+
+    fn parse_type(&mut self) -> Result<Type, ParseError> {
+        if self.check_next(Expected::Symbol(Symbol::Exclamation)) {
+            let span = self
+                .expect_item(Expected::Symbol(Symbol::Exclamation))?
+                .span;
+
+            Ok(Type::new(TypeKind::Never, span))
+        } else if self.check_next(Expected::OpenDelim(DelimKind::Paren)) {
+            let mut span = self
+                .expect_item(Expected::OpenDelim(DelimKind::Paren))?
+                .span;
+
+            let mut contents = Vec::new();
+
+            while !self.check_next(Expected::CloseDelim(DelimKind::Paren)) {
+                contents.push(self.parse_type()?);
+                self.eat(Expected::Symbol(Symbol::Comma));
+            }
+
+            let close_paren_span = self
+                .expect_item(Expected::CloseDelim(DelimKind::Paren))?
+                .span;
+            span = span.combine(close_paren_span);
+
+            Ok(Type::new(TypeKind::Tuple(contents), span))
+        } else {
+            let path = self.parse_path()?;
+            let path_span = path.span;
+            Ok(Type::new(TypeKind::Path(path), path_span))
+        }
+    }
+
+    fn parse_path(&mut self) -> Result<Path, ParseError> {
+        let mut span = match self.tokens.peek() {
+            Some(token) => token.span,
+            None => return Err(self.unexpected()),
+        };
+
+        let location = if self.eat(Expected::Keyword(Keyword::SelfKw)) {
+            self.expect_item(Expected::Symbol(Symbol::DoubleColon))?;
+            PathSearchLocation::SelfMod
+        } else if self.eat(Expected::Keyword(Keyword::Super)) {
+            self.expect_item(Expected::Symbol(Symbol::DoubleColon))?;
+            PathSearchLocation::Super
+        } else if self.eat(Expected::Keyword(Keyword::Root)) {
+            self.expect_item(Expected::Symbol(Symbol::DoubleColon))?;
+            PathSearchLocation::Root
+        } else if self.eat(Expected::Symbol(Symbol::DoubleColon)) {
+            PathSearchLocation::Absolute
+        } else {
+            PathSearchLocation::Local
+        };
+
+        let first_segment = self.expect_item(Expected::Ident)?.kind.unwrap_ident();
+        let mut segments = vec![PathSegment::Named(first_segment, 0)];
+
+        while self.eat(Expected::Symbol(Symbol::DoubleColon)) {
+            if !self.check_next(Expected::Ident) {
+                break;
+            }
+
+            let ident = self.expect_item(Expected::Ident)?;
+            span = span.combine(ident.span);
+            segments.push(PathSegment::Named(ident.kind.unwrap_ident(), 0));
+        }
+
+        Ok(Path::new(location, segments, span))
     }
 
     /// Parses a list of expressions, such as `1, 2, 3)`.
@@ -428,7 +538,7 @@ impl<'src> Parser<'src> {
             let close_paren_span = self
                 .expect_item(Expected::CloseDelim(DelimKind::Paren))?
                 .span;
-            span.grow_to_contain(&close_paren_span);
+            span = span.combine(close_paren_span);
             expr.span = span;
 
             expr
@@ -438,7 +548,7 @@ impl<'src> Parser<'src> {
                 None => return Err(self.unexpected()),
             };
 
-            span.grow_to_contain(&expr.span);
+            span = span.combine(expr.span);
             Expression::new(ExpressionKind::Return(expr), span)
         } else if let Some(op) = self.token_as_unary_op(&next_token_kind) {
             // Throw away the operator
@@ -450,11 +560,11 @@ impl<'src> Parser<'src> {
                 None => return Err(self.unexpected()),
             };
 
-            span.grow_to_contain(&expr.span);
+            span = span.combine(expr.span);
             Expression::new(ExpressionKind::UnaryOperation(op, Box::new(expr)), span)
         } else if self.check_block_like_expr_next() {
             let expr = self.parse_block_like_expr()?;
-            span.grow_to_contain(&expr.span);
+            span = span.combine(expr.span);
 
             expr
         } else if self.check_next(Expected::Literal(ExpectLiteral::Any)) {
@@ -467,20 +577,12 @@ impl<'src> Parser<'src> {
                 _ => unreachable!(),
             };
 
-            span.grow_to_contain(&literal_span);
+            span = span.combine(literal_span);
             Expression::new(ExpressionKind::Literal(literal_kind), span)
         } else if self.check_next(Expected::Ident) {
-            let (ident, ident_span) = match self.bump() {
-                Some(Token {
-                    kind: TokenKind::IdentOrKeyword(ident),
-                    span,
-                }) => (ident, span),
-
-                _ => unreachable!(),
-            };
-
-            span.grow_to_contain(&ident_span);
-            Expression::new(ExpressionKind::Identifier(ident), span)
+            let path = self.parse_path()?;
+            span = span.combine(path.span);
+            Expression::new(ExpressionKind::Path(path), span)
         } else {
             return Err(self.unexpected());
         };
@@ -488,7 +590,7 @@ impl<'src> Parser<'src> {
         loop {
             let (next_token_kind, next_token_span) = match self.tokens.peek() {
                 Some(token) => {
-                    span.grow_to_contain(&token.span);
+                    span = span.combine(token.span);
                     (token.kind.clone(), token.span)
                 },
 
@@ -508,7 +610,7 @@ impl<'src> Parser<'src> {
                 )?;
 
                 let close_paren = self.expect_item(Expected::CloseDelim(DelimKind::Paren))?;
-                span.grow_to_contain(&close_paren.span);
+                span = span.combine(close_paren.span);
 
                 res = Expression::new(ExpressionKind::FnCall(Box::new(res), args), span);
                 continue;
@@ -531,7 +633,7 @@ impl<'src> Parser<'src> {
                 None => return Err(self.unexpected()),
             };
 
-            span.grow_to_contain(&rhs.span);
+            span = span.combine(rhs.span);
 
             res = Expression::new(
                 ExpressionKind::BinaryOperation(Box::new(res), operator, Box::new(rhs)),
@@ -588,7 +690,7 @@ impl<'src> Parser<'src> {
         };
 
         let then = self.parse_block()?;
-        if_span.grow_to_contain(&then.span);
+        if_span = if_span.combine(then.span);
 
         let otherwise = if self.eat(Expected::Keyword(Keyword::Else)) {
             if self.check_next(Expected::Keyword(Keyword::If)) {
@@ -596,7 +698,7 @@ impl<'src> Parser<'src> {
                 // into `if x {} else { if y {} }`
                 let else_if_expr = self.parse_if_expr()?;
                 let else_if_span = else_if_expr.span;
-                if_span.grow_to_contain(&else_if_span);
+                if_span = if_span.combine(else_if_span);
 
                 Some(Block {
                     contents: Vec::new(),
@@ -605,7 +707,7 @@ impl<'src> Parser<'src> {
                 })
             } else {
                 let else_block = self.parse_block()?;
-                if_span.grow_to_contain(&else_block.span);
+                if_span = if_span.combine(else_block.span);
 
                 Some(else_block)
             }
@@ -643,7 +745,7 @@ impl<'src> Parser<'src> {
         };
 
         let body = self.parse_block()?;
-        span.grow_to_contain(&body.span);
+        span = span.combine(body.span);
 
         Ok(Expression {
             kind: ExpressionKind::While(Box::new(cond), body),
@@ -659,7 +761,7 @@ impl<'src> Parser<'src> {
             .map(Box::new);
 
         let body = self.parse_block()?;
-        span.grow_to_contain(&body.span);
+        span = span.combine(body.span);
 
         Ok(Expression {
             kind: ExpressionKind::Loop(loop_count, body),

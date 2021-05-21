@@ -1,3 +1,5 @@
+extern fn print(x: i64);
+
 fn main() {
     f("hi world");
     return 6.0;

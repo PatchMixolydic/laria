@@ -119,7 +119,6 @@ fn main() {
             info!("compiling {}...", source_file)
         }
 
-        //let ast = compile_for_vm(source_path);
         todo!("parse, compile, validate, lower to file");
     } else {
         if args.verbose {
@@ -133,7 +132,7 @@ fn main() {
 
         let mut vm = VM::new(script, args.trace_execution);
 
-        let main_fn = match vm.get_global("main") {
+        let main_fn = match vm.get_global("::root::main") {
             Ok(res @ (Value::Subroutine(_) | Value::NativeFn(_))) => res.clone(),
 
             Ok(res_wrong_type) => {
@@ -162,7 +161,7 @@ fn main() {
         });
 
         match status {
-            Ok(Value::Unit) => return,
+            Ok(Value::Unit) => {},
 
             Ok(res) => {
                 info!("returned `{}`", res);
