@@ -152,7 +152,7 @@ impl<'src> LowerAst<'src> {
     fn lower_path(&mut self, path: ast::Path) -> hir_tree::Path {
         // TODO: name resolution
         match path.location {
-            ast::PathSearchLocation::Absolute => (),
+            ast::PathSearchLocation::Absolute | ast::PathSearchLocation::NoMangle => (),
             _ => self.emit_unresolved_path_err(&path),
         }
 
@@ -162,7 +162,9 @@ impl<'src> LowerAst<'src> {
             .map(|segment| segment.to_string())
             .collect();
 
-        hir_tree::Path::new(segments, path.span)
+        let no_mangle = path.location == ast::PathSearchLocation::NoMangle;
+
+        hir_tree::Path::new(segments, path.span, no_mangle)
     }
 
     fn lower_statement(&mut self, statement: ast::Statement) -> hir_tree::Statement {

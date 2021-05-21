@@ -129,11 +129,16 @@ pub struct Path {
     // TODO: name resolution
     pub segments: Vec<String>,
     pub span: Span,
+    pub no_mangle: bool,
 }
 
 impl Path {
-    pub const fn new(segments: Vec<String>, span: Span) -> Self {
-        Self { segments, span }
+    pub const fn new(segments: Vec<String>, span: Span, no_mangle: bool) -> Self {
+        Self {
+            segments,
+            span,
+            no_mangle,
+        }
     }
 }
 

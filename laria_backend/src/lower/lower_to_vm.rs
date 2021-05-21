@@ -82,7 +82,11 @@ impl Lower {
             .try_into()
             .expect("too many fn args");
 
-        let subroutine = Subroutine::new(function.header.name.to_string(), num_args, start_address);
+        let subroutine = Subroutine::new(
+            function.header.name.to_bytecode_repr(),
+            num_args,
+            start_address,
+        );
         self.globals
             .insert(subroutine.name().to_owned(), Value::Subroutine(subroutine));
 
@@ -91,7 +95,7 @@ impl Lower {
         self.locals_stack.push(String::new());
 
         for (name, _) in &function.header.arguments {
-            self.locals_stack.push(name.to_string());
+            self.locals_stack.push(name.to_bytecode_repr());
         }
 
         self.lower_expression(function.body.into());
@@ -109,7 +113,7 @@ impl Lower {
 
             StatementKind::Declaration((name, ty), rhs) => {
                 self.lower_expression(rhs);
-                self.locals_stack.push(name.to_string());
+                self.locals_stack.push(name.to_bytecode_repr());
             },
         }
     }
@@ -156,7 +160,7 @@ impl Lower {
     /// and returns `true`. The stack is not modified if the lookup
     /// fails.
     fn try_resolve_local(&mut self, path: &Path) -> bool {
-        let path_str = path.to_string();
+        let path_str = path.to_bytecode_repr();
         for (i, name) in self.locals_stack.iter().enumerate().rev() {
             if name == &path_str {
                 // Found a local
@@ -173,7 +177,7 @@ impl Lower {
     /// and returns `true`. The stack is not modified if the lookup
     /// fails.
     fn try_resolve_global(&mut self, path: &Path) -> bool {
-        let path_str = path.to_string();
+        let path_str = path.to_bytecode_repr();
         if self.globals.contains_key(&path_str) {
             // yup!
             self.emit_push(Value::String(path_str));
@@ -306,7 +310,7 @@ impl Lower {
 
             ExpressionKind::FnCall(maybe_fn_name, args) => {
                 let fn_name = match maybe_fn_name.kind {
-                    ExpressionKind::Path(path) => path.to_string(),
+                    ExpressionKind::Path(path) => path.to_bytecode_repr(),
                     _ => todo!("function call with {}", maybe_fn_name),
                 };
 

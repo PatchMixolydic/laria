@@ -15,7 +15,7 @@ impl Scope {
     pub(super) fn new(absolute_path: Path) -> Self {
         debug_assert!(matches!(
             absolute_path.location,
-            PathSearchLocation::Absolute
+            PathSearchLocation::Absolute | PathSearchLocation::NoMangle
         ));
 
         Self {
@@ -81,9 +81,16 @@ impl Scopes {
     }
 
     /// Pushes a scope identifier to the current path being resolved.
-    pub(super) fn push_scope(&mut self, segment: PathSegment) {
+    pub(super) fn push_scope(&mut self, segment: PathSegment, no_mangle: bool) {
         let parent = self.current_path.clone();
-        let new_path = self.current_path.create_child(segment.clone());
+        let mut new_path = self.current_path.create_child(segment.clone());
+
+        new_path.location = if no_mangle {
+            PathSearchLocation::NoMangle
+        } else {
+            PathSearchLocation::Absolute
+        };
+
         self.current_path = new_path.clone();
 
         let parent_scope = match self.scope_for_mut(&parent) {
@@ -96,21 +103,30 @@ impl Scopes {
     }
 
     /// Pops a scope identifier from the path being resolved.
-    /// Returns whether or not we've just popped the last scope
+    ///
+    /// Returns whether or not we've just popped the last scope.
     pub(super) fn pop_scope(&mut self) -> bool {
         self.current_path.segments.pop();
         self.current_path.segments.is_empty()
     }
 
     /// Adds a local name to the current scope.
-    pub(super) fn add_local(&mut self, segment: PathSegment) -> Result<Path, ()> {
-        let path = self.current_path.create_child(segment.clone());
+    pub(super) fn add_local(&mut self, segment: PathSegment, no_mangle: bool) -> Result<Path, ()> {
+        let mut path = self.current_path.create_child(segment.clone());
+
+        path.location = if no_mangle {
+            PathSearchLocation::NoMangle
+        } else {
+            PathSearchLocation::Absolute
+        };
+
         let res = self.current_scope_mut();
         res.insert(segment, ScopeMember::Scope(Scope::new(path.clone())));
         Ok(path)
     }
 
     /// Given a path to a scope, get the corresponding scope.
+    ///
     /// For example, to get the scope that `std::mem::forget` lives
     /// in, you'd use `scope_for` with a path that represents `std::mem`.
     /// Note that upon encountering a leaf, this will return `None`.
@@ -122,7 +138,7 @@ impl Scopes {
             PathSearchLocation::Super => todo!(),
             PathSearchLocation::SelfMod => todo!(),
 
-            PathSearchLocation::Absolute => {
+            PathSearchLocation::Absolute | PathSearchLocation::NoMangle => {
                 let mut current_scope = &self.contents;
 
                 for segment in &path.segments {
@@ -173,7 +189,7 @@ impl Scopes {
             PathSearchLocation::Super => todo!(),
             PathSearchLocation::SelfMod => todo!(),
 
-            PathSearchLocation::Absolute => {
+            PathSearchLocation::Absolute | PathSearchLocation::NoMangle => {
                 let mut current_scope = &mut self.contents;
 
                 for segment in &path.segments {
@@ -212,7 +228,7 @@ impl Scopes {
             PathSearchLocation::Super => todo!("super lookup"),
             PathSearchLocation::SelfMod => todo!("self lookup"),
 
-            PathSearchLocation::Absolute => {
+            PathSearchLocation::Absolute | PathSearchLocation::NoMangle => {
                 // TODO: actually look up and validate the path
                 Some(path.clone())
             },

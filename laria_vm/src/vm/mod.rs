@@ -209,31 +209,14 @@ impl VM {
         Ok(())
     }
 
-    fn qualify_path_str(&self, name: impl AsRef<str>) -> String {
-        let name_ref = name.as_ref();
-
-        if name_ref.starts_with("::") {
-            // This is an absolute path
-            name_ref.to_owned()
-        } else {
-            // Assume that this is a top-level path
-            // TODO: is this good enough?
-            format!("::root::{}", name_ref)
-        }
+    pub fn set_global(&mut self, name: impl Into<String>, value: Value) {
+        self.script.globals.insert(name.into(), value);
     }
 
-    pub fn set_global(&mut self, name: impl AsRef<str>, value: Value) {
+    pub fn get_global(&self, name: impl AsRef<str> + Into<String>) -> Result<&Value, VMError> {
         self.script
             .globals
-            .insert(self.qualify_path_str(name), value);
-    }
-
-    pub fn get_global(&self, name: impl AsRef<str>) -> Result<&Value, VMError> {
-        let name = self.qualify_path_str(name);
-
-        self.script
-            .globals
-            .get(&name)
-            .ok_or(VMError::NoSuchGlobal(name))
+            .get(name.as_ref())
+            .ok_or(VMError::NoSuchGlobal(name.into()))
     }
 }

@@ -5,7 +5,11 @@ fn f() {
 }
 
 fn g(x: i64, y: i64, z: i64) {
-    z == z;
+    if z == z {
+        print("ok!");
+    } else {
+        print("oh no!");
+    }
 }
 
 fn main() {

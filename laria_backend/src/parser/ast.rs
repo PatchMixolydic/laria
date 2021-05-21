@@ -210,6 +210,11 @@ pub enum PathSearchLocation {
     Absolute,
     /// The current scope, denoted by an arbitrary name.
     Local,
+    /// An absolute path that should be lowered to only
+    /// contain its last segment as its name.
+    ///
+    /// Used for `extern fn`s.
+    NoMangle,
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -264,6 +269,15 @@ impl Path {
         }
     }
 
+    /// Returns the path as a [`String`] suitable for lowering
+    /// to bytecode.
+    pub fn to_bytecode_repr(&self) -> String {
+        match self.location {
+            PathSearchLocation::NoMangle => self.unwrap_last_segment().to_string(),
+            _ => self.to_string(),
+        }
+    }
+
     pub fn local_name(name: impl Into<String>, span: Span) -> Self {
         Self {
             location: PathSearchLocation::Local,
@@ -305,6 +319,12 @@ impl fmt::Display for Path {
             PathSearchLocation::SelfMod => write!(f, "self::")?,
             PathSearchLocation::Absolute => write!(f, "::")?,
             PathSearchLocation::Local => (),
+
+            PathSearchLocation::NoMangle => {
+                // NoMangle is a special case.
+                // Write out the last segment and exit.
+                return write!(f, "{}", self.unwrap_last_segment());
+            },
         }
 
         for (i, segment) in self.segments.iter().enumerate() {

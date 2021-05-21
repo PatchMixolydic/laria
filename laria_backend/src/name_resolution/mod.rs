@@ -30,8 +30,8 @@ impl<'src> ResolveState<'src> {
         }
     }
 
-    fn push_scope(&mut self, scope_segment: PathSegment) {
-        self.scopes.push_scope(scope_segment);
+    fn push_scope(&mut self, scope_segment: PathSegment, no_mangle: bool) {
+        self.scopes.push_scope(scope_segment, no_mangle);
         self.blocks_in_scope.push(0);
     }
 
@@ -47,8 +47,8 @@ impl<'src> ResolveState<'src> {
     }
 
     /// Adds a local name to the current scope.
-    fn add_local(&mut self, name: PathSegment) -> Path {
-        self.scopes.add_local(name).unwrap()
+    fn add_local(&mut self, name: PathSegment, no_mangle: bool) -> Path {
+        self.scopes.add_local(name, no_mangle).unwrap()
     }
 
     fn lookup(&mut self, path: &Path) -> Path {
@@ -70,11 +70,11 @@ impl<'src> ResolveState<'src> {
     /// Run the name resolution pass on the AST.
     fn resolve(mut self, ast: &mut Script) -> Result<(), ()> {
         // TODO: get script name
-        self.push_scope(PathSegment::Named("root".to_owned(), 0));
-        self.add_local(PathSegment::Named("i64".to_owned(), 0));
-        self.add_local(PathSegment::Named("f64".to_owned(), 0));
-        self.add_local(PathSegment::Named("bool".to_owned(), 0));
-        self.add_local(PathSegment::Named("string".to_owned(), 0));
+        self.push_scope(PathSegment::Named("root".to_owned(), 0), false);
+        self.add_local(PathSegment::Named("i64".to_owned(), 0), false);
+        self.add_local(PathSegment::Named("f64".to_owned(), 0), false);
+        self.add_local(PathSegment::Named("bool".to_owned(), 0), false);
+        self.add_local(PathSegment::Named("string".to_owned(), 0), false);
 
         self.resolve_mod(&mut ast.top_level_mod);
 
@@ -87,13 +87,14 @@ impl<'src> ResolveState<'src> {
 
     fn resolve_mod(&mut self, module: &mut Mod) {
         if !module.is_top_level() {
-            self.push_scope(module.name.unwrap_last_segment().to_owned());
+            self.push_scope(module.name.unwrap_last_segment().to_owned(), false);
         }
 
         for extern_fn in &mut module.extern_fns {
-            extern_fn.header.name =
-                self.add_local(extern_fn.header.name.unwrap_last_segment().to_owned());
-            self.resolve_fn_header(&mut extern_fn.header);
+            let mut name =
+                self.add_local(extern_fn.header.name.unwrap_last_segment().to_owned(), true);
+            extern_fn.header.name = name;
+            self.resolve_fn_header(&mut extern_fn.header, true);
             self.pop_scope();
         }
 
@@ -101,7 +102,7 @@ impl<'src> ResolveState<'src> {
         // mutually dependent)...
         for function in &mut module.functions {
             function.header.name =
-                self.add_local(function.header.name.unwrap_last_segment().to_owned());
+                self.add_local(function.header.name.unwrap_last_segment().to_owned(), false);
         }
 
         // ... resolve each module ...
@@ -128,7 +129,7 @@ impl<'src> ResolveState<'src> {
     /// Resolves the name of a function, its arguments, and its types.
     /// Pushes a new scope for this function, which the caller is
     /// responsible for popping.
-    fn resolve_fn_header(&mut self, header: &mut FunctionDecl) {
+    fn resolve_fn_header(&mut self, header: &mut FunctionDecl, no_mangle: bool) {
         // We have to make two passes over the arguments:
         // one to look up the types and one to add the arguments
         // to the function scope
@@ -140,22 +141,22 @@ impl<'src> ResolveState<'src> {
             self.resolve_type(return_type);
         }
 
-        self.push_scope(header.name.unwrap_last_segment().to_owned());
+        self.push_scope(header.name.unwrap_last_segment().to_owned(), no_mangle);
 
         for (name, _) in &mut header.arguments {
-            *name = self.add_local(name.unwrap_last_segment().to_owned());
+            *name = self.add_local(name.unwrap_last_segment().to_owned(), no_mangle);
         }
     }
 
     fn resolve_function(&mut self, function: &mut FunctionDef) {
-        self.resolve_fn_header(&mut function.header);
+        self.resolve_fn_header(&mut function.header, false);
         self.resolve_block(&mut function.body);
         self.pop_scope();
     }
 
     fn resolve_block(&mut self, block: &mut Block) {
         let block_segment = PathSegment::Block(*self.current_blocks_in_scope());
-        self.push_scope(block_segment);
+        self.push_scope(block_segment, false);
 
         for statement in &mut block.contents {
             self.resolve_statement(statement);
@@ -174,7 +175,7 @@ impl<'src> ResolveState<'src> {
             StatementKind::Expression(expr) => self.resolve_expression(expr),
 
             StatementKind::Declaration((name, maybe_ty), expr) => {
-                *name = self.add_local(name.unwrap_last_segment().to_owned());
+                *name = self.add_local(name.unwrap_last_segment().to_owned(), false);
 
                 if let Some(ty) = maybe_ty.as_mut() {
                     self.resolve_type(ty);
