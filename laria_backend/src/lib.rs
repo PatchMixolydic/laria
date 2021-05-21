@@ -60,7 +60,6 @@ impl From<ParseError> for LariaError {
 }
 
 /// Parses a script, validates it, and lowers it for use with the VM.
-/// This currently aborts on errors, but this will change in the future.
 pub fn compile_for_vm(
     filename: impl AsRef<Path>,
     features: UnstableFeatures,

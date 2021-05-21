@@ -2,10 +2,15 @@ pub mod tick;
 
 use core::panic;
 use laria_log::*;
-use std::{array, str::Utf8Error};
+use std::{array, mem::swap, str::Utf8Error};
 use thiserror::Error;
 
-use crate::{stack_frame::StackFrame, subroutine::Subroutine, value::Value, Flags, Script};
+use crate::{
+    stack_frame::{default_stack_frames, StackFrame},
+    subroutine::Subroutine,
+    value::Value,
+    Flags, Script,
+};
 
 #[derive(Clone, Debug)]
 pub enum VMStatus {
@@ -58,8 +63,8 @@ pub struct VM {
 
 /// Temporary function to print a value.
 /// This is used as a native function in the VM.
-fn native_print(stack: &mut Vec<Value>) -> Value {
-    match stack.pop() {
+fn native_print(vm: &mut VM) -> Value {
+    match vm.stack.pop() {
         Some(val) => println!("{}", val),
         None => panic!("Tried to print from an empty stack"),
     }
@@ -67,8 +72,8 @@ fn native_print(stack: &mut Vec<Value>) -> Value {
     Value::Unit
 }
 
-fn native_abort(stack: &mut Vec<Value>) -> Value {
-    match stack.pop() {
+fn native_abort(vm: &mut VM) -> Value {
+    match vm.stack.pop() {
         Some(val) => error!("vm aborted: {}", val),
         None => error!("vm aborted"),
     }
@@ -84,7 +89,7 @@ impl VM {
             flags: Flags::empty(),
             program_counter: 0,
             stack: Vec::new(),
-            stack_frames: Vec::with_capacity(16),
+            stack_frames: default_stack_frames(),
             halted: true,
             trace_execution,
         };
@@ -119,21 +124,14 @@ impl VM {
             });
         }
 
-        if sub.start_address() > self.script.instructions.len() {
-            return Err(VMError::OutOfBoundsJump {
-                pc: self.program_counter,
-                script_len: self.script.instructions.len(),
-            });
-        }
-
         // Get the return address now.
         // Pushing the stack frame first would take
         // a mutable reference to `self.stack_frames`,
         // which is not allowed since we have an immutable
         // reference to `self.globals`.
         let return_address = self.program_counter;
+        self.set_program_counter(sub.start_address())?;
 
-        self.program_counter = sub.start_address();
         self.stack_frames
             .push(StackFrame::new(stack_base, return_address));
 
@@ -160,7 +158,7 @@ impl VM {
             },
 
             Value::NativeFn(f) => {
-                let res = f(&mut self.stack);
+                let res = f(self);
                 self.stack.pop();
                 return Ok(VMStatus::Return(res));
             },
@@ -195,7 +193,7 @@ impl VM {
             },
 
             Value::NativeFn(f) => {
-                let res = f(&mut self.stack);
+                let res = f(self);
                 self.stack.pop();
                 self.stack.push(res);
             },
@@ -215,5 +213,68 @@ impl VM {
             .globals
             .get(name.as_ref())
             .ok_or_else(|| VMError::NoSuchGlobal(name.into()))
+    }
+
+    pub fn program_counter(&self) -> usize {
+        self.program_counter
+    }
+
+    fn set_program_counter(&mut self, program_counter: usize) -> Result<(), VMError> {
+        if program_counter > self.script.instructions.len() {
+            return Err(VMError::OutOfBoundsJump {
+                pc: self.program_counter,
+                script_len: self.script.instructions.len(),
+            });
+        }
+
+        self.program_counter = program_counter;
+        Ok(())
+    }
+
+    /// Swap out the execution context of this
+    /// VM for a given context.
+    ///
+    /// This can be used to implement crude context
+    /// switching before coroutines are implemented.
+    /// Note that this is a hack and might go away at
+    /// any time.
+    ///
+    /// Note that the stack and stack frames must be in
+    /// a state that the bytecode at `program_counter`
+    /// can handle. Otherwise, this will cause Laria-side
+    /// undefined behaviour. This should not cause memory
+    /// unsafety.
+    ///
+    /// Currently, there must be at least one stack frame for
+    /// the VM to operate correctly. See [`default_stack_frames`]
+    /// for a function that creates a valid empty set of stack
+    /// frames.
+    pub fn swap_stack_and_program_counter(
+        &mut self,
+        stack: &mut Vec<Value>,
+        stack_frames: &mut Vec<StackFrame>,
+        program_counter: &mut usize,
+    ) -> Result<(), VMError> {
+        // Swap manually to take advantage of
+        // `set_program_counter`'s error check.
+        let new_program_counter = *program_counter;
+        *program_counter = self.program_counter;
+        self.set_program_counter(new_program_counter)?;
+
+        swap(stack, &mut self.stack);
+        swap(stack_frames, &mut self.stack_frames);
+        Ok(())
+    }
+
+    pub fn set_halted(&mut self, halted: bool) {
+        self.halted = halted;
+    }
+
+    pub fn halted(&self) -> bool {
+        self.halted
+    }
+
+    pub fn stack_mut(&mut self) -> &mut Vec<Value> {
+        &mut self.stack
     }
 }

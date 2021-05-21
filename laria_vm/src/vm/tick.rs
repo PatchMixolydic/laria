@@ -583,8 +583,9 @@ impl VM {
                 self.stack.truncate(old_frame.stack_base);
                 self.program_counter = old_frame.return_address;
 
-
-                if self.stack_frames.is_empty() {
+                // TODO: is it an error if `self.stack_frames.is_empty()`
+                // here?
+                if self.stack_frames.len() <= 1 {
                     // This is the entry point
                     self.halted = true;
                     return Ok(VMStatus::Return(ret_val));

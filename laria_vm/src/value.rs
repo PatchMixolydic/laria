@@ -3,11 +3,11 @@ use num_traits::FromPrimitive;
 use std::{fmt, str::Utf8Error};
 use thiserror::Error;
 
-use crate::subroutine::Subroutine;
+use crate::{subroutine::Subroutine, vm::VM};
 
 // Using a `Box<dyn FnMut>` here causes issues
 // when trying to call native functions.
-pub type NativeFn = fn(&mut Vec<Value>) -> Value;
+pub type NativeFn = fn(&mut VM) -> Value;
 
 #[derive(Clone, Copy, Debug, Error)]
 pub enum FromBytesError {
