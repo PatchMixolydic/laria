@@ -20,6 +20,12 @@ impl Script {
     }
 }
 
+impl Default for Script {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl fmt::Display for Script {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for extern_fn in &self.top_level_mod.extern_fns {
@@ -67,7 +73,7 @@ impl Mod {
 
 impl fmt::Display for Mod {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "mod {} {{\n", self.name)?;
+        writeln!(f, "mod {} {{", self.name)?;
 
         for extern_fn in &self.extern_fns {
             write!(f, "{};\n\n", extern_fn)?;
