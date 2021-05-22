@@ -1,16 +1,11 @@
+// doesn't work correctly w/ macros 2.0 (rust-lang/rust#80940)
+#![allow(unused_macros)]
+#![feature(decl_macro)]
 #![warn(meta_variable_misuse)]
 pub use colorful::{Color, Colorful};
 
-/// Internal macro used to deduplicate logic.
-///
-/// Please do not use this. This is an implementation
-/// detail and may disappear at any time. This macro
-/// is public because `macro_rules!` is limited
-/// and rust-analyzer doesn't handle macros 2.0.
 #[cfg(debug_assertions)]
-#[doc(hidden)]
-#[macro_export]
-macro_rules! log {
+macro log {
     (($name:ident, $colour:ident) => $fmt:literal $(,)?) => {{
         eprintln!(
             "{} {}: {}",
@@ -18,7 +13,7 @@ macro_rules! log {
             stringify!($name).$colour().bold(),
             $fmt
         );
-    }};
+    }},
 
     (($name:ident, $colour:ident) => $fmt:literal, $($arg:expr),* $(,)?) => {{
         eprintln!(
@@ -27,19 +22,18 @@ macro_rules! log {
             stringify!($name).$colour().bold(),
             format!($fmt, $($arg),*)
         );
-    }};
+    }},
 }
 
 #[cfg(not(debug_assertions))]
-#[macro_export]
-macro_rules! log {
+macro log {
     (($name:ident, $colour:ident) => $fmt:literal $(,)?) => {{
         eprintln!(
             "{}: {}",
             stringify!($name).$colour().bold(),
             $fmt
         );
-    }};
+    }},
 
     (($name:ident, $colour:ident) => $fmt:literal, $($arg:expr),* $(,)?) => {{
         eprintln!(
@@ -47,48 +41,33 @@ macro_rules! log {
             stringify!($name).$colour().bold(),
             format!($fmt, $($arg),*)
         );
-    }};
+    }},
 }
 
 /// For verbose output tracking the execution of the program.
-#[macro_export]
-macro_rules! trace {
-    ($($input:tt)*) => {
-        $crate::log!((trace, magenta) => $($input)*)
-    };
+pub macro trace($($input:tt)*) {
+    $crate::log!((trace, magenta) => $($input)*)
 }
 
 /// For additional information that might be helpful for debugging.
 #[cfg(debug_assertions)]
-#[macro_export]
-macro_rules! debug {
-    ($($input:tt)*) => {
-        $crate::log!((debug, cyan) => $($input)*)
-    };
+pub macro debug($($input:tt)*) {
+    $crate::log!((debug, cyan) => $($input)*)
 }
 
 /// Information that may be useful to the user.
-#[macro_export]
-macro_rules! info {
-    ($($input:tt)*) => {
-        $crate::log!((info, blue) => $($input)*)
-    };
+pub macro info($($input:tt)*) {
+    $crate::log!((info, blue) => $($input)*)
 }
 
 /// An alert that something may have gone wrong.
-#[macro_export]
-macro_rules! warning {
-    ($($input:tt)*) => {
-        $crate::log!((warning, light_yellow) => $($input)*)
-    };
+pub macro warning($($input:tt)*) {
+    $crate::log!((warning, light_yellow) => $($input)*)
 }
 
 /// An alert that something has gone horribly wrong.
-#[macro_export]
-macro_rules! error {
-    ($($input:tt)*) => {
-        $crate::log!((error, light_red) => $($input)*)
-    };
+pub macro error($($input:tt)*) {
+    $crate::log!((error, light_red) => $($input)*)
 }
 
 #[cfg(test)]
