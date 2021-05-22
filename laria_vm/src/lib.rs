@@ -42,4 +42,8 @@ impl Script {
             globals,
         }
     }
+
+    pub fn instructions(&self) -> &[u8] {
+        &self.instructions
+    }
 }

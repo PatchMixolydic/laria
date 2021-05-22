@@ -91,6 +91,7 @@ name = "laria"
 version = "0.1.0"
 dependencies = [
  "laria_backend",
+ "laria_disassembler",
  "laria_log",
  "laria_vm",
  "pico-args",
@@ -107,6 +108,14 @@ dependencies = [
  "laria_vm",
  "proptest",
  "thiserror",
+]
+
+[[package]]
+name = "laria_disassembler"
+version = "0.1.0"
+dependencies = [
+ "laria_vm",
+ "num-traits",
 ]
 
 [[package]]

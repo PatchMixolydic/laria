@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 laria_backend = { path = "../laria_backend" }
+laria_disassembler = { path = "../laria_disassembler" }
 laria_log = { path = "../laria_log" }
 laria_vm = { path = "../laria_vm" }
 pico-args = { version = "0.3.4", features = ["short-space-opt"] }

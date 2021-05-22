@@ -1,0 +1,11 @@
+[package]
+name = "laria_disassembler"
+description = "A disassembler for Laria bytecode"
+license = "MIT"
+version = "0.1.0"
+authors = ["Ruby Lazuli <nipkraps@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+laria_vm = { path = "../laria_vm" }
+num-traits = "0.2.14"
