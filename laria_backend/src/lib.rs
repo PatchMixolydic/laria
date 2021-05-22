@@ -1,6 +1,7 @@
 #![allow(clippy::comparison_chain)]
 #![allow(clippy::needless_doctest_main)]
 #![allow(unused)]
+#![warn(meta_variable_misuse)]
 // Got turned off by allow(unused)
 #![warn(unused_imports)]
 #![warn(unused_must_use)]

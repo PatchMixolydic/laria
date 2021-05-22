@@ -1,6 +1,8 @@
+#![warn(meta_variable_misuse)]
 pub use colorful::{Color, Colorful};
 
 /// Internal macro used to deduplicate logic.
+///
 /// Please do not use this. This is an implementation
 /// detail and may disappear at any time. This macro
 /// is public because `macro_rules!` is limited
