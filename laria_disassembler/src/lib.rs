@@ -74,10 +74,15 @@ pub fn disassemble_bytecode(instructions: &[u8]) -> String {
     // bytecode (all `jf`s would produce "jf\njf\n...")
     let mut res = String::with_capacity(instructions.len() * 3);
 
-    while current_index < instructions.len() {
+    loop {
         let (line, advance) = disassemble_instruction(&instructions[current_index..]);
         current_index += advance;
         res.push_str(&line);
+
+        if current_index >= instructions.len() {
+            break;
+        }
+
         res.push('\n')
     }
 

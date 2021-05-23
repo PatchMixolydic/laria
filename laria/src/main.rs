@@ -1,4 +1,5 @@
 use laria_backend::{compile_for_vm, features::compiler::UnstableFeatures};
+use laria_disassembler::disassemble_bytecode;
 use laria_log::*;
 use laria_vm::{
     value::Value,
@@ -19,6 +20,7 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 #[derive(Debug)]
 struct Args {
     compile: bool,
+    disassemble: bool,
     help: bool,
     trace_execution: bool,
     unstable_features: UnstableFeatures,
@@ -41,6 +43,7 @@ fn process_args() -> Result<Args, pico_args::Error> {
 
     Ok(Args {
         compile: args.contains(["-c", "--compile"]),
+        disassemble: args.contains(["-d", "--disassemble"]),
         help: args.contains(["-h", "--help"]),
         trace_execution: args.contains(["-t", "--trace"]),
         verbose: args.contains(["-v", "--verbose"]),
@@ -59,6 +62,7 @@ fn usage() -> String {
             "Usage: {} [options] file\n",
             "Options:\n",
             "   -c, --compile - compile the input file to bytecode\n",
+            "   -d, --disassemble - compile the input file to bytecode and disassemble the result\n",
             "   -h, --help - view help\n",
             "   -t, --trace - trace execution of the virtual machine\n",
             "   -U feature, --unstable-feature feature - enable an unstable compiler feature\n",
@@ -122,13 +126,27 @@ fn main() {
         todo!("parse, compile, validate, lower to file");
     } else {
         if args.verbose {
-            info!("interpreting {}...", source_file);
+            info!("compiling {}...", source_file);
         }
 
         let script = match compile_for_vm(source_path, args.unstable_features) {
             Ok(res) => res,
             Err(_) => exit(2),
         };
+
+        if args.disassemble {
+            if args.verbose {
+                info!("disassembling {}...", source_file);
+            }
+
+            println!("{}", disassemble_bytecode(script.instructions()));
+
+            return;
+        }
+
+        if args.verbose {
+            info!("interpreting {}...", source_file);
+        }
 
         let mut vm = VM::new(script, args.trace_execution);
 
