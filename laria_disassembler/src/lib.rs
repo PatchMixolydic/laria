@@ -35,7 +35,7 @@ pub fn instruction_to_mnemonic(inst: Instruction) -> &'static str {
         Instruction::Return => "ret\n",
         Instruction::Halt => "halt",
         Instruction::Wait => "wait",
-        Instruction::GetGlobal => "lglb",
+        Instruction::GetGlobal => "gglb",
         Instruction::SetGlobal => "sglb",
         Instruction::GetLocal => "gloc",
         Instruction::SetLocal => "sloc",

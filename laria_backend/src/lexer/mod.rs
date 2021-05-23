@@ -44,20 +44,19 @@ impl<'src> Lexer<'src> {
         }
     }
 
-    #[allow(clippy::unnecessary_wraps)]
     /// Returns a token composed of just the current character.
     ///
     /// This function is infallible; it returns [`Result`]
     /// to match the return type of [`lex_one_token`].
     ///
     /// [`lex_one_token`]: Lexer::lex_one_token()
+    #[allow(clippy::unnecessary_wraps)]
     fn one_char_token(&mut self, start: usize, kind: TokenKind) -> Result<Option<Token>, LexError> {
         let span = Span::new(start, 1);
         self.chars.next();
         Ok(Some(Token::new(kind, span)))
     }
 
-    #[allow(clippy::unnecessary_wraps)]
     /// Returns a token depending on the next character.
     /// If the next character is `next_char`, this returns `both_kind`.
     /// Otherwise, this returns `one_kind`.
@@ -66,6 +65,7 @@ impl<'src> Lexer<'src> {
     /// to match the return type of [`lex_one_token`].
     ///
     /// [`lex_one_token`]: Lexer::lex_one_token()
+    #[allow(clippy::unnecessary_wraps)]
     fn maybe_two_char(
         &mut self,
         start: usize,
