@@ -13,7 +13,6 @@ pub type NativeFn = fn(&mut Vec<Value>) -> Value;
 pub enum FromBytesError {
     #[error("Byte slice not big enough (expected {expected} bytes, got {actual})")]
     NotEnoughBytes { expected: usize, actual: usize },
-
     #[error("Couldn't parse string value: {0}")]
     Utf8Error(#[source] Utf8Error),
     #[error("Unknown type tag {0}")]
@@ -310,9 +309,11 @@ impl fmt::Display for Value {
             Value::Tuple(contents) => {
                 write!(f, "(")?;
 
-                for item in contents {
-                    write!(f, "{}", item)?;
-                }
+                contents
+                    .iter()
+                    .map(ToString::to_string)
+                    .intersperse(", ".into())
+                    .try_for_each(|item| write!(f, "{}", item))?;
 
                 write!(f, ")")
             },

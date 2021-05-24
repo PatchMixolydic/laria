@@ -454,7 +454,7 @@ impl Lower {
                 // we might be able to make use of type information here later
                 let arity = contents.len() as u64;
 
-                for expression in contents {
+                for expression in contents.into_iter().rev() {
                     self.lower_expression(expression);
                 }
 

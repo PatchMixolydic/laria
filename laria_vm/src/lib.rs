@@ -1,5 +1,6 @@
 #![allow(clippy::comparison_chain)]
 #![allow(unused)]
+#![feature(iter_intersperse)]
 #![warn(meta_variable_misuse)]
 #![warn(unused_imports)]
 #![warn(unused_must_use)]
