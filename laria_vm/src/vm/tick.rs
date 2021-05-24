@@ -585,9 +585,6 @@ impl VM {
 
 
                 if self.stack_frames.is_empty() {
-                    self.halted = true;
-                    return Err(VMError::ReturnFromTopLevel(ret_val));
-                } else if self.stack_frames.len() == 1 {
                     // This is the entry point
                     self.halted = true;
                     return Ok(VMStatus::Return(ret_val));

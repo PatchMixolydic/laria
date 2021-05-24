@@ -79,15 +79,12 @@ fn native_abort(stack: &mut Vec<Value>) -> Value {
 
 impl VM {
     pub fn new(script: Script, trace_execution: bool) -> Self {
-        let mut stack_frames = Vec::with_capacity(16);
-        stack_frames.push(StackFrame::new(0, 0));
-
         let mut res = Self {
             script,
             flags: Flags::empty(),
             program_counter: 0,
             stack: Vec::new(),
-            stack_frames,
+            stack_frames: Vec::with_capacity(16),
             halted: true,
             trace_execution,
         };
