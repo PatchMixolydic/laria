@@ -1,21 +1,19 @@
 extern fn print(s: string);
 
 fn main() {
-    // TODO: test tuple types
-    // once those are working
-    let x = (1 + 2);
+    let x: i64 = (1 + 2);
     x = 1 + 2;
 
-    let y = (3 + 4,);
+    let y: (i64,) = (3 + 4,);
     y = (8,);
     // this will (correctly) not typecheck
     // y = 3 + 4;
 
-    let z = ();
+    let z: () = ();
     z = print("z");
     z = f();
 
-    let w = (1, 2, 3, 4);
+    let w: (i64, i64, i64, i64) = (1, 2, 3, 4);
     w = (5, 6, 7, 8);
     // w = (9,);
 }

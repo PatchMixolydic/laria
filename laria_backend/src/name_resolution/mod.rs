@@ -121,8 +121,18 @@ impl<'src> ResolveState<'src> {
     }
 
     fn resolve_type(&mut self, ty: &mut Type) {
-        if let TypeKind::Path(path) = &mut ty.kind {
-            *path = self.lookup(path);
+        match &mut ty.kind {
+            TypeKind::Path(path) => {
+                *path = self.lookup(path);
+            },
+
+            TypeKind::Tuple(types) => {
+                for ty in types {
+                    self.resolve_type(ty);
+                }
+            },
+
+            TypeKind::Never => {},
         }
     }
 
