@@ -69,9 +69,11 @@ impl<'src> ResolveState<'src> {
 
     /// Run the name resolution pass on the AST.
     fn resolve(mut self, ast: &mut Script) -> Result<(), ()> {
-        // TODO: get script name
+        // TODO: get script name?
+        // TODO: this seems like a hack
         self.push_scope(PathSegment::Named("root".to_owned(), 0), false);
         self.add_local(PathSegment::Named("i64".to_owned(), 0), false);
+        self.add_local(PathSegment::Named("u64".to_owned(), 0), false);
         self.add_local(PathSegment::Named("f64".to_owned(), 0), false);
         self.add_local(PathSegment::Named("bool".to_owned(), 0), false);
         self.add_local(PathSegment::Named("string".to_owned(), 0), false);

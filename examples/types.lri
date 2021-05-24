@@ -1,0 +1,14 @@
+fn hina() {
+    if false {
+        let never: ! = loop {};
+    }
+}
+
+fn main() {
+    let unit: () = hina;
+    let int: i64 = -4;
+    let uint: u64 = 4;
+    let float: f64 = 4.0;
+    let boolean: bool = true;
+    let shingyoku: (u64, i64) = (1, -1);
+}
