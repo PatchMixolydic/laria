@@ -5,12 +5,7 @@ use laria_log::*;
 use std::{array, mem::swap, str::Utf8Error};
 use thiserror::Error;
 
-use crate::{
-    stack_frame::{default_stack_frames, StackFrame},
-    subroutine::Subroutine,
-    value::Value,
-    Flags, Script,
-};
+use crate::{stack_frame::StackFrame, subroutine::Subroutine, value::Value, Flags, Script};
 
 #[derive(Clone, Debug)]
 pub enum VMStatus {
@@ -89,7 +84,7 @@ impl VM {
             flags: Flags::empty(),
             program_counter: 0,
             stack: Vec::new(),
-            stack_frames: default_stack_frames(),
+            stack_frames: Vec::with_capacity(16),
             halted: true,
             trace_execution,
         };
@@ -245,10 +240,10 @@ impl VM {
     /// undefined behaviour. This should not cause memory
     /// unsafety.
     ///
-    /// Currently, there must be at least one stack frame for
-    /// the VM to operate correctly. See [`default_stack_frames`]
-    /// for a function that creates a valid empty set of stack
-    /// frames.
+    /// Currently, there must be at least one [`StackFrame`] for
+    /// the VM to operate correctly to emulate a function call.
+    /// This frame is automatically provided by [`call`][Self::call],
+    /// but you can also provide it yourself with `StackFrame::new(0, 0)`.
     pub fn swap_stack_and_program_counter(
         &mut self,
         stack: &mut Vec<Value>,
