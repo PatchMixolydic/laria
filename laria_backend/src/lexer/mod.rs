@@ -278,7 +278,7 @@ impl<'src> Lexer<'src> {
             match num_str.parse::<f64>() {
                 Ok(res) => {
                     let token = Token::new(
-                        TokenKind::Literal(LiteralKind::Float(res)),
+                        TokenKind::Literal(LiteralKind::float_from_f64(res)),
                         Span::new(start, num_str.len()),
                     );
                     Ok(token)

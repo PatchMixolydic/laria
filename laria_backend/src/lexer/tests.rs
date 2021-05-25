@@ -93,8 +93,8 @@ fn lex_float() {
     let mut res = lex("1.5").expect("Expected a successful lex").into_iter();
     let mut res_2 = lex("1e6").expect("Expected a successful lex").into_iter();
 
-    assert_lex_result!(res, TokenKind::Literal(LiteralKind::Float(1.5)));
-    assert_lex_result!(res_2, TokenKind::Literal(LiteralKind::Float(1e6)));
+    assert_lex_result!(res, TokenKind::Literal(LiteralKind::float_from_f64(1.5)));
+    assert_lex_result!(res_2, TokenKind::Literal(LiteralKind::float_from_f64(1e6)));
 }
 
 #[test]

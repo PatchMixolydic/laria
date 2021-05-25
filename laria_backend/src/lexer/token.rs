@@ -1,3 +1,4 @@
+use decorum::Total;
 use std::fmt;
 
 use crate::errors::Span;
@@ -32,16 +33,40 @@ impl DelimKind {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+/// Represents a literal and contains its data.
+///
+/// Note that `LiteralKind::Float` contains a
+/// [`decorum::Total`]. This means that:
+/// * this type can implement [`Eq`] safely.
+/// * The total ordering for floats is `−∞ < ... < 0 < ... < ∞ < NaN`.
+/// * `Float(NaN)` == `Float(NaN)`.
+/// * `Float(-0.0)` == `Float(0.0)`.
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LiteralKind {
     /// ex. `1`, `1000`
     Integer(i64),
     /// ex. `"Hello world!"`
     String(String),
     /// ex. `1.5`
-    Float(f64),
+    Float(Total<f64>),
     /// ex. `true`, `false`
     Boolean(bool),
+}
+
+impl LiteralKind {
+    /// Creates a `LiteralKind::Float` from an `f64`.
+    pub fn float_from_f64(x: f64) -> Self {
+        Self::Float(Total::from_inner(x))
+    }
+
+    /// Returns `Some(f64)` if this is a `LiteralKind::Float`.
+    /// Otherwise, returns `None`.
+    pub fn float_to_f64(&self) -> Option<f64> {
+        match self {
+            Self::Float(res) => Some(res.into_inner()),
+            _ => None,
+        }
+    }
 }
 
 impl fmt::Display for LiteralKind {
@@ -147,7 +172,7 @@ impl fmt::Display for Symbol {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TokenKind {
     /// An identifier (ex. `cirno`) or keyword (ex. `loop`)
     IdentOrKeyword(String),
@@ -185,16 +210,13 @@ impl TokenKind {
         }
     }
 
-    pub fn unwrap_float(self) -> f64 {
+    pub fn unwrap_float(self) -> Total<f64> {
         match self {
             Self::Literal(LiteralKind::Float(f)) => f,
             _ => panic!("called `unwrap_float` on {:?}", self),
         }
     }
 }
-
-// NaN isn't parsed, so perhaps this is okay?
-impl Eq for TokenKind {}
 
 // Primarily implemented for `to_string`
 impl fmt::Display for TokenKind {

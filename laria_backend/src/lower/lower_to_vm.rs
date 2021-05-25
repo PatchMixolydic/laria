@@ -214,7 +214,7 @@ impl Lower {
                 let value = match kind {
                     LiteralKind::Integer(i) => Value::Integer(i),
                     LiteralKind::String(s) => Value::String(s),
-                    LiteralKind::Float(f) => Value::Float(f),
+                    LiteralKind::Float(f) => Value::Float(f.into_inner()),
                     LiteralKind::Boolean(b) => Value::Byte(b as u8),
                 };
 
