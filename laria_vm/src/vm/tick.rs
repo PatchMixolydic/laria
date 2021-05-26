@@ -721,6 +721,19 @@ impl VM {
 
                 self.stack.push(Value::Tuple(tuple_contents));
             }),
+
+            Instruction::ExpressionReturn => two_arg!((ret_val, maybe_num_locals) => {
+                let num_locals = match maybe_num_locals {
+                    Value::UnsignedInt(res) => res as usize,
+                    _ => return Err(VMError::WrongType),
+                };
+
+                for _ in 0..num_locals {
+                    self.stack.pop();
+                }
+
+                self.stack.push(ret_val);
+            }),
         };
 
         Ok(VMStatus::Running)

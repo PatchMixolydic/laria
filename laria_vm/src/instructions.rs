@@ -81,7 +81,9 @@ pub enum Instruction {
     /// Given a name, retrieves a constant and pushes it on top of the stack.
     GetConstant,
     /// Given an arity, n, pops n values from the stack and lifts them into
-    /// a tuple. For example, if `LiftIntoTuple` is used with this stack
+    /// a tuple.
+    ///
+    /// For example, if `LiftIntoTuple` is used with this stack
     /// (where `3` is the top of the stack):
     /// ```none
     /// [main]["foo"][false][1][3]
@@ -90,4 +92,11 @@ pub enum Instruction {
     /// ... then `3`, along with the next 3 elements, would be popped from the
     /// stack, and the tuple `(1, false, "foo")` would be pushed onto it.
     LiftIntoTuple,
+    /// Given the number of locals to remove, pops the first value
+    /// from the stack (the return value), removes all local variables,
+    /// and puts the return value back.
+    ///
+    /// This is different from [`Return`][Self::Return] as it does not destroy
+    /// any stack frames.
+    ExpressionReturn,
 }

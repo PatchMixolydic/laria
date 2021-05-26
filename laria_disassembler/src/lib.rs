@@ -41,6 +41,7 @@ pub fn instruction_to_mnemonic(inst: Instruction) -> &'static str {
         Instruction::SetLocal => "sloc",
         Instruction::GetConstant => "gcon",
         Instruction::LiftIntoTuple => "tup",
+        Instruction::ExpressionReturn => "xret",
     }
 }
 

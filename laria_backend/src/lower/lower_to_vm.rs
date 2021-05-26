@@ -207,15 +207,11 @@ impl Lower {
         todo!();
     }
 
-    fn pop_locals(&mut self, locals_stack_original_len: usize) {
-        for _ in locals_stack_original_len..self.locals_stack.len() {
-            self.instructions.push(Instruction::Pop as u8);
-            self.locals_stack.pop();
-        }
-    }
-
     /// Lowers an expression to bytecode.
     fn lower_expression(&mut self, expression: Expression) {
+        // Save the locals stack length for `ExpressionReturn`
+        let local_stack_original_len = self.locals_stack.len();
+
         match expression.kind {
             ExpressionKind::Literal(kind) => {
                 let value = match kind {
@@ -384,8 +380,6 @@ impl Lower {
             },
 
             ExpressionKind::Loop(Some(num_loops), body) => {
-                let local_stack_original_len = self.locals_stack.len();
-
                 // Create temporary locals to hold the loop counter and maximum
                 self.emit_push(Value::Integer(0));
                 let loop_counter_local = self.emit_temp_local();
@@ -420,13 +414,9 @@ impl Lower {
 
                 self.patch_real_jump_target(exit_target_range, self.instructions.len());
 
-                // Clean up locals
-                assert_eq!(self.locals_stack.len() - local_stack_original_len, 2);
-                self.pop_locals(local_stack_original_len);
                 // loop has to emit a unit
                 // TODO: should it?
                 self.emit_push(Value::Unit);
-                assert_eq!(self.locals_stack.len(), local_stack_original_len);
             },
 
             ExpressionKind::While(condition, body) => {
@@ -441,23 +431,17 @@ impl Lower {
                 self.emit_push(loop_target);
                 self.instructions.push(Instruction::Jump as u8);
 
+                self.patch_real_jump_target(exit_target_range, self.instructions.len());
+
                 // loop has to emit a unit
                 // TODO: should it?
                 self.emit_push(Value::Unit);
-
-                self.patch_real_jump_target(exit_target_range, self.instructions.len());
             },
 
             ExpressionKind::Block(block) => {
-                // This is a new scope; store the length of the locals stack
-                let local_stack_original_len = self.locals_stack.len();
-
                 for statement in block.contents {
                     self.lower_statement(statement);
                 }
-
-                // Exiting the scope; get rid of locals
-                self.pop_locals(local_stack_original_len);
 
                 match block.return_expr {
                     Some(expr) => {
@@ -501,6 +485,13 @@ impl Lower {
                     self.emit_variable_not_found(&id);
                 }
             },
+        }
+
+        let num_locals_to_pop = self.locals_stack.len() - local_stack_original_len;
+        if num_locals_to_pop > 0 {
+            self.emit_push(Value::UnsignedInt(num_locals_to_pop as _));
+            self.instructions.push(Instruction::ExpressionReturn as _);
+            self.locals_stack.truncate(local_stack_original_len);
         }
     }
 }
